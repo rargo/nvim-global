@@ -59,7 +59,7 @@ Find symbol definitions, if multiple definitions found, a quickfix window will b
 ### Find cursor word definition
 
 ```
-:GlobalFindCwordDefinition <symbol>
+:GlobalFindCwordDefinition
 ```
 
 Find the symbol under cursor definitions, if multiple definitions found, a quickfix window will be shown, 
