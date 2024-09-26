@@ -5,7 +5,7 @@ nvim-global is a Neovim plugin that use GNU global to generate tags, find symbol
 In order to use nvim-global, you need to install GNU global software package first,
 In Ubuntu or Debian system, use 'sudo apt-get install global'
 
-Neovim has been cancel the support for cscope, despite there's treesitter and LSP, I still 
+Neovim has been stop the support for cscope, despite there's treesitter and LSP, I still 
 think global suits my work more.
 
 ### Generate tag files in current directory
