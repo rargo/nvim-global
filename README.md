@@ -10,7 +10,7 @@ Neovim has been stop the support for cscope, despite there's treesitter and LSP,
 ## ⚡️ Requirements
 
 - install GNU global software package
-- [Neovim telescope plugin](https://github.com/nvim-telescope/telescope.nvim)
+- install [Neovim telescope plugin](https://github.com/nvim-telescope/telescope.nvim)
 
 ## 📦 Installation
 
