@@ -28,7 +28,7 @@ Install the plugin with your preferred package manager:
 require("nvim-global").setup()
 ```
 
-## 📦 Commands
+## 💻 Commands
 
 ### Generate tag files in current directory
 
