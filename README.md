@@ -19,7 +19,13 @@ Install the plugin with your preferred package manager:
 ### [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
-{ "rargo/nvim-global", opts = {} }
+{ 'rargo/nvim-global' }
+```
+
+### Setup
+
+```lua
+require("nvim-global").setup()
 ```
 
 ## 📦 Commands
