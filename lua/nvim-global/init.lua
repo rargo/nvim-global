@@ -2,7 +2,14 @@ local sorters = require "telescope.sorters"
 local state = require "telescope.actions.state"
 local previewers = require "telescope.previewers"
 
+
+-- TODO
+-- 1. multiple tags support
+-- 2. global tags as completion resource
+
 local M = {}
+
+M.extra_path = {}
 
 local function run_command(cmd)
 	local handle = io.popen(cmd)
@@ -44,6 +51,43 @@ local function check_executable()
 	end
 
 	return true
+end
+
+local function execute_global_cmd(cmd, extra_path)
+	vim.fn.setqflist({})
+	vim.cmd("cclose")
+
+	local errorformat = vim.o.errorformat
+	vim.o.errorformat="%.%# %l %f %m"
+
+	local global_cmd = "system(\"" .. cmd .. "\")"
+
+	vim.cmd.cexpr(global_cmd)
+	local qflist = vim.fn.getqflist()
+	if (#qflist == 0) then
+		return
+	end
+
+	if (extra_path ~= nil) then
+		for _, path in ipairs(extra_path) do
+			local global_cmd = "system(\"" .. cmd .. " -C " .. extra_path .. "\")"
+			local path_qflist = vim.fn.getqflist()
+			if (#path_qflist ~= 0) then
+				for _, line in ipairs(path_qflist) do
+					table.insert(qflist, line)
+				end
+			end
+		end
+	end
+
+	if (#qflist >= 2) then
+		vim.cmd("rightbelow cw")
+		vim.cmd("cc! 1", { mods = { slient = true, emsg_silent = true }})
+	end
+	vim.cmd("redraw!")
+
+	--restore errorformat
+	vim.o.errorformat = errorformat
 end
 
 local function find_definition(symbol)
@@ -115,6 +159,7 @@ M.setup = function(config)
   vim.api.nvim_create_user_command("GlobalShowInfo", function(opt)
 	M.showinfo(opt.args)
   end, { nargs = 0, desc = "Show tag info" })
+
 end
 
 M.listdefinitions = function(_)
@@ -216,6 +261,20 @@ M.findcworddefinition = function()
 	local cword = vim.fn.expand("<cword>")
 
 	M.finddefinition(cword)
+end
+
+M.addextrapath = function(path)
+	local absolute_path = vim.fn.expand(path)
+	
+	for _,v in ipairs(M.extra_path) do
+		if ( v == absolute_path) then
+			print("path: \"" .. path .. "\" already added")
+			return
+		end
+	end
+
+	table.insert(M.extra_path, absolute_path)
+	print("\"" .. path .. "\" added")
 end
 
 return M
