@@ -1,4 +1,4 @@
-# nvim-global
+# ✨ Features
 
 nvim-global is a Neovim plugin that use GNU global to generate tags, find symbol definitions, find symbol reference.
 
@@ -7,6 +7,18 @@ In Ubuntu or Debian system, use 'sudo apt-get install global'
 
 Neovim has been stop the support for cscope, despite there's treesitter and LSP, I still 
 think global suits my work more.
+
+## 📦 Installation
+
+Install the plugin with your preferred package manager:
+
+### [lazy.nvim](https://github.com/folke/lazy.nvim)
+
+```lua
+{ "rargo/nvim-global", opts = {} }
+```
+
+## 📦 Commands
 
 ### Generate tag files in current directory
 
