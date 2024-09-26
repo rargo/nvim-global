@@ -47,28 +47,47 @@ local function check_executable()
 end
 
 local function find_definition(symbol)
+	vim.fn.setqflist({})
+	vim.cmd("cclose")
+
 	local errorformat = vim.o.errorformat
-	--set errorformat
 	vim.o.errorformat="%.%# %l %f %m"
+
 	vim.cmd.cexpr("system(\"global -axd " .. symbol .. "\")")
 	local qflist = vim.fn.getqflist()
+	if (#qflist == 0) then
+		return
+	end
+
 	if (#qflist >= 2) then
 		vim.cmd("rightbelow cw")
+		vim.cmd("cc! 1", { mods = { slient = true, emsg_silent = true }})
 	end
-	vim.cmd("cc 1")
+	vim.cmd("redraw!")
+
 	--restore errorformat
 	vim.o.errorformat = errorformat
 end
 
 local function find_reference(symbol)
+	vim.fn.setqflist({})
+	vim.cmd("cclose")
+
 	local errorformat = vim.o.errorformat
 	vim.o.errorformat="%.%# %l %f %m"
+
 	vim.cmd.cexpr("system(\"global -axr " .. symbol .. "\")")
 	local qflist = vim.fn.getqflist()
+	if (#qflist == 0) then
+		return
+	end
+
 	if (#qflist >= 2) then
 		vim.cmd("rightbelow cw")
+		vim.cmd("cc! 1", { mods = { slient = true, emsg_silent = true }})
 	end
-	vim.cmd("cc 1")
+	vim.cmd("redraw!")
+
 	vim.o.errorformat = errorformat
 end
 
@@ -84,6 +103,10 @@ M.setup = function(config)
   vim.api.nvim_create_user_command("GlobalFindDefinition", function(opt)
 	M.finddefinition(opt.args)
   end, { nargs = 1, desc = "Find symbol definition" })
+
+  vim.api.nvim_create_user_command("GlobalFindCwordDefinition", function(opt)
+	M.findcworddefinition()
+  end, { nargs = 0, desc = "Find cursor word definition" })
 
   vim.api.nvim_create_user_command("GlobalFindReference", function(opt)
 	M.findreference(opt.args)
@@ -187,6 +210,12 @@ M.showinfo = function()
 	local root = run_command("global --print root")
 	local dbpath = run_command("global --print dbpath")
 	print("root: " .. root .. "dbpath: " .. dbpath)
+end
+
+M.findcworddefinition = function()
+	local cword = vim.fn.expand("<cword>")
+
+	M.finddefinition(cword)
 end
 
 return M
