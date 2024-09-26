@@ -29,7 +29,7 @@ specify definition in the quickfix window
 You can map list symbol definitions to some key, below use key \<F8\>
 
 ```
-vim.api.nvim_set_keymap('n', '<F8>', '<cmd>lua require("nvim-global").listdefinitions()<CR>')
+vim.api.nvim_set_keymap('n', '<F8>', '<cmd>lua require("nvim-global").listdefinitions()<CR>', {noremap = true, silent = true})
 ```
 
 ### Find symbol definition
