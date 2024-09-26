@@ -8,7 +8,7 @@ In Ubuntu or Debian system, use 'sudo apt-get install global'
 Neovim has been cancel the support for cscope, despite there's treesitter and LSP, I still 
 think global suits my work more.
 
-### generate tag files in current directory
+### Generate tag files in current directory
 
 ```
 :GlobalGenerateTags
@@ -16,7 +16,7 @@ think global suits my work more.
 
 Generate tags in current directory, if tags already generated, global will update it incrementally
 
-### list symbol definitions
+### List all symbol definitions
 
 ```
 :GlobalListDefinition
@@ -26,7 +26,13 @@ Select the symbol from telescope dialog, it will jump to the symbol definition f
 if multiple definitions found, a quickfix window will be shown under current buffer, you can select
 specify definition in the quickfix window
 
-### find symbol definitions
+You can map list symbol definitions to some key, below use key \<F8\>
+
+```
+vim.api.nvim_set_keymap('n', '<F8>', '<cmd>lua require("nvim-global").listdefinitions()<CR>')
+```
+
+### Find symbol definition
 
 ```
 :GlobalFindDefinition <symbol>
@@ -34,17 +40,19 @@ specify definition in the quickfix window
 
 Find symbol definitions, if multiple definitions found, a quickfix window will be shown
 
-### find symbol reference
+### Find cursor word definition
+
+```
+:GlobalFindCwordDefinition <symbol>
+```
+
+Find the symbol under cursor definitions, if multiple definitions found, a quickfix window will be shown, 
+You can map this to some key.
+
+### Find symbol reference
 
 ```
 :GlobalFindReference <symbol>
 ```
 Find symbol reference, if multiple references found, a quickfix window will be shown
 
-### keymaping
-
-You can map list symbol definitions to some key, below use key <F8>
-
-```
-vim.api.nvim_set_keymap('n', '<F8>', '<cmd>lua require("nvim-global").listdefinitions()<CR>')
-```
