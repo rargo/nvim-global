@@ -9,7 +9,7 @@ local previewers = require "telescope.previewers"
 
 local M = {}
 
-M.extra_path = {}
+M.extra_paths = {}
 
 local function run_command(cmd)
 	local handle = io.popen(cmd)
@@ -25,23 +25,26 @@ local function get_global_definitions()
 	return t
 end
 
-local function build_definition_preview(symbol)
+local function build_definition_preview(symbol, extra_paths)
 	local preview_tbl = {}
 	local str = run_command("global -xd " .. symbol)
 	-- global -axd output quickfix format:
 	--       symbol linenumber file
-	local tbl = vim.split(str, "\n")
+	local preview_tbl = vim.split(str, "\n")
 
-	return tbl
-	--for n, line in ipairs(tbl) do
-	--	--print(type(line))
-	--	local info = vim.split(line, " ")
-	--	-- -- symbol name: info[1], line number: info[2], file location: info[3]
-	--	table.insert(preview_tbl, info[1])
-	--	table.insert(preview_tbl, info[2])
-	--	table.insert(preview_tbl, info[3])
-	--end
-	--return preview_tbl
+	if (extra_paths ~= nil) then
+		for _, path in ipairs(extra_paths) do
+			local str = run_command("global -xd " .. symbol .. " -C " .. path)
+			if (str ~= "") then
+				local tbl = vim.split(str, "\n")
+				for _,v in ipairs(tbl) do
+					table.insert(preview_tbl, v)
+				end
+			end
+		end
+	end
+
+	return preview_tbl
 end
 
 local function check_executable()
@@ -53,32 +56,37 @@ local function check_executable()
 	return true
 end
 
-local function execute_global_cmd(cmd, extra_path)
+local function execute_global_cmd(global_cmd, extra_paths)
 	vim.fn.setqflist({})
 	vim.cmd("cclose")
 
 	local errorformat = vim.o.errorformat
 	vim.o.errorformat="%.%# %l %f %m"
 
-	local global_cmd = "system(\"" .. cmd .. "\")"
-
-	vim.cmd.cexpr(global_cmd)
+	local cmd = "system(\"" .. global_cmd .. "\")"
+	vim.cmd.cexpr(cmd)
 	local qflist = vim.fn.getqflist()
 	if (#qflist == 0) then
 		return
 	end
 
-	if (extra_path ~= nil) then
-		for _, path in ipairs(extra_path) do
-			local global_cmd = "system(\"" .. cmd .. " -C " .. extra_path .. "\")"
+	if (extra_paths ~= nil) then
+		for _, path in ipairs(extra_paths) do
+			local cmd = "system(\"" .. global_cmd .. " -C " .. path .. "\")"
+			print("global_cmd:"  .. cmd)
+			vim.cmd.cexpr(cmd)
 			local path_qflist = vim.fn.getqflist()
 			if (#path_qflist ~= 0) then
-				for _, line in ipairs(path_qflist) do
-					table.insert(qflist, line)
+				for _, t in ipairs(path_qflist) do
+					table.insert(qflist, t)
+					-- for k,v in pairs(t) do
+					-- 	print("k:" .. k .. " v:" .. v)
+					-- end
 				end
 			end
 		end
 	end
+	vim.fn.setqflist(qflist)
 
 	if (#qflist >= 2) then
 		vim.cmd("rightbelow cw")
@@ -91,48 +99,13 @@ local function execute_global_cmd(cmd, extra_path)
 end
 
 local function find_definition(symbol)
-	vim.fn.setqflist({})
-	vim.cmd("cclose")
-
-	local errorformat = vim.o.errorformat
-	vim.o.errorformat="%.%# %l %f %m"
-
-	vim.cmd.cexpr("system(\"global -axd " .. symbol .. "\")")
-	local qflist = vim.fn.getqflist()
-	if (#qflist == 0) then
-		return
-	end
-
-	if (#qflist >= 2) then
-		vim.cmd("rightbelow cw")
-		vim.cmd("cc! 1", { mods = { slient = true, emsg_silent = true }})
-	end
-	vim.cmd("redraw!")
-
-	--restore errorformat
-	vim.o.errorformat = errorformat
+	local global_cmd = "global -axd " .. symbol
+	execute_global_cmd(global_cmd, M.extra_paths)
 end
 
 local function find_reference(symbol)
-	vim.fn.setqflist({})
-	vim.cmd("cclose")
-
-	local errorformat = vim.o.errorformat
-	vim.o.errorformat="%.%# %l %f %m"
-
-	vim.cmd.cexpr("system(\"global -axr " .. symbol .. "\")")
-	local qflist = vim.fn.getqflist()
-	if (#qflist == 0) then
-		return
-	end
-
-	if (#qflist >= 2) then
-		vim.cmd("rightbelow cw")
-		vim.cmd("cc! 1", { mods = { slient = true, emsg_silent = true }})
-	end
-	vim.cmd("redraw!")
-
-	vim.o.errorformat = errorformat
+	local global_cmd = "global -axr " .. symbol
+	execute_global_cmd(global_cmd)
 end
 
 M.setup = function(config)
@@ -160,6 +133,9 @@ M.setup = function(config)
 	M.showinfo(opt.args)
   end, { nargs = 0, desc = "Show tag info" })
 
+  vim.api.nvim_create_user_command("GlobalAddPath", function(opt)
+	M.addextrapath(opt.args)
+  end, { nargs = 1, desc = "Add extra tags", complete = "dir" })
 end
 
 M.listdefinitions = function(_)
@@ -182,7 +158,7 @@ M.listdefinitions = function(_)
   -- Build preivewer and set highlighting for each to "sshconfig"
   local previewer = previewers.new_buffer_previewer {
     define_preview = function(self, entry)
-      local lines = build_definition_preview(entry.value)
+      local lines = build_definition_preview(entry.value, M.extra_paths)
       vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
       --require("telescope.previewers.utils").highlighter(self.state.bufnr, "sshconfig")
     end,
@@ -254,7 +230,19 @@ M.showinfo = function()
 
 	local root = run_command("global --print root")
 	local dbpath = run_command("global --print dbpath")
-	print("root: " .. root .. "dbpath: " .. dbpath)
+	print("Current directory:")
+	print("   root: " .. root)
+	print("   dbpath: " .. dbpath)
+
+	if (M.extra_paths ~= nil) then
+		for _, path in ipairs(M.extra_paths) do
+			local root = run_command("global --print root -C " .. path)
+			local dbpath = run_command("global --print dbpath -C " .. path)
+			print(path .. ":")
+			print("   root: " .. root)
+			print("   dbpath: " .. dbpath)
+		end
+	end
 end
 
 M.findcworddefinition = function()
@@ -264,16 +252,25 @@ M.findcworddefinition = function()
 end
 
 M.addextrapath = function(path)
+	if (check_executable() == false) then
+		return
+	end
+
 	local absolute_path = vim.fn.expand(path)
+	local tag_file = absolute_path .. "/GTAGS"
+	if (vim.fn.filereadable(tag_file) == 0) then
+		print("Error, GTAGS file not found in \"" .. path .. "\". Please generate it first")
+		return
+	end
 	
-	for _,v in ipairs(M.extra_path) do
-		if ( v == absolute_path) then
+	for _,v in ipairs(M.extra_paths) do
+		if (v == absolute_path) then
 			print("path: \"" .. path .. "\" already added")
 			return
 		end
 	end
 
-	table.insert(M.extra_path, absolute_path)
+	table.insert(M.extra_paths, absolute_path)
 	print("\"" .. path .. "\" added")
 end
 
