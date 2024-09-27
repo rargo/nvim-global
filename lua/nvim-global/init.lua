@@ -20,7 +20,7 @@ local function run_command(cmd)
 end
 
 local function get_global_definitions()
-	local str = run_command("global -c")
+	local str = run_command("global -s -c")
 	local t = vim.split(str, "\n")
 	return t
 end
@@ -66,9 +66,6 @@ local function execute_global_cmd(global_cmd, extra_paths)
 	local cmd = "system(\"" .. global_cmd .. "\")"
 	vim.cmd.cexpr(cmd)
 	local qflist = vim.fn.getqflist()
-	if (#qflist == 0) then
-		return
-	end
 
 	if (extra_paths ~= nil) then
 		for _, path in ipairs(extra_paths) do
@@ -86,6 +83,10 @@ local function execute_global_cmd(global_cmd, extra_paths)
 			end
 		end
 	end
+	if (#qflist == 0) then
+		return
+	end
+
 	vim.fn.setqflist(qflist)
 
 	if (#qflist >= 2) then
