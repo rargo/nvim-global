@@ -78,3 +78,26 @@ You can map this to some key.
 ```
 Find symbol reference, if multiple references found, a quickfix window will be shown
 
+### Add extra tag files
+
+```
+:GlobalAddPath <dir>
+```
+
+You can add more than one tag files, it's useful for find symbol definition that defined in other projects.
+
+For example, when you developing kernel drivers, you can add kernel header path:
+(below command is examples, the exact kernel header file path is base on your own system)
+
+First generate tag file in the kernel headers directory
+```
+cd /usr/src/linux-headers-6.8.0-45-generic
+sudo gtags
+```
+
+Then add it in Neovim
+```
+:GlobalAddPath /usr/src/linux-headers-6.8.0-40-generic
+```
+Now you can find function or macro definitions that defines in the kernel headers.
+
