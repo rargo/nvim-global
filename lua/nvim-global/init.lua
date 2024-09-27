@@ -20,9 +20,15 @@ local function run_command(cmd)
 end
 
 local function get_global_definitions()
+	local str = run_command("global -c")
+	local definitions = vim.split(str, "\n")
 	local str = run_command("global -s -c")
 	local t = vim.split(str, "\n")
-	return t
+	for _, v in ipairs(t) do
+		table.insert(definitions, v)
+	end
+	
+	return definitions
 end
 
 local function build_definition_preview(symbol, extra_paths)
