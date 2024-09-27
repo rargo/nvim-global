@@ -1,13 +1,12 @@
 ## ✨ Features
 
-nvim-global is a Neovim plugin that use GNU global to generate tags, find symbol definitions, find symbol references.
+nvim-global is a Neovim plugin that uses GNU global to generate tags, find symbol definitions, and find symbol references.
 
-Support more than one tag files. It's userful to find symbol that defined in other projects, for example, symbols defined in librarys, kernel header files
+Supports multiple tag files. Useful for finding symbols defined in other projects, for example, in libraries, kernel header files.
 
-In order to use nvim-global, you need to install GNU global software package first,
-In Ubuntu or Debian system, use 'sudo apt-get install global'
+To use nvim-global, you need to install the GNU global package first. In Ubuntu or Debian systems, use "sudo apt-get install global".
 
-Neovim has been stop the support for cscope, despite there's treesitter and LSP, I still favor global in my work scenario
+Neovim has stopped supporting cscope. Despite treesitter and LSP, I still prefer to use global in my work scenarios.
 
 ## ⚡️ Requirements
 
