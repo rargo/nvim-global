@@ -2,6 +2,8 @@
 
 nvim-global is a Neovim plugin that use GNU global to generate tags, find symbol definitions, find symbol references.
 
+Support more than on tag files, It's userful to find symbol that defined in other projects, for example, librarys, kernel header files
+
 In order to use nvim-global, you need to install GNU global software package first,
 In Ubuntu or Debian system, use 'sudo apt-get install global'
 
