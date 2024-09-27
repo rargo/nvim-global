@@ -70,7 +70,7 @@ Find symbol definitions, if multiple definitions found, a quickfix window will b
 :GlobalFindCwordDefinition
 ```
 
-Find the symbol under cursor definitions, if multiple definitions found, a quickfix window will be shown, 
+Find the symbol under cursor, if multiple definitions found, a quickfix window will be shown, 
 You can map this to some key.
 
 ### Find symbol reference
