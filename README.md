@@ -80,6 +80,13 @@ You can map this to some key.
 ```
 Find symbol reference, if multiple references found, a quickfix window will be shown
 
+### Show tag file information
+
+```
+:GlobalShowInfo
+```
+it will show the project's root directory and directory where tag databases exist. 
+
 ### Add extra tag files
 
 ```
