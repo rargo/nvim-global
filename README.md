@@ -68,10 +68,10 @@ Now you can find function or macro definitions that defines in the kernel header
 :GlobalListDefinitions
 ```
 
-A telescope picker window will show up, select the symbol from telescope dialog,
-It will jump to the symbol definition file and location,
-if multiple definitions found, a quickfix window will be shown under current buffer, you can select
-specify definition in the quickfix window
+A Telescope selector window will be displayed, select the symbol from the dialog,
+it will jump to the symbol definition file and location,
+if multiple definitions are found, a quick fix window will be displayed under the current buffer, 
+you can select a specific definition in the quick fix window
 
 You can map list symbol definitions to some key, below use key \<F8\>
 
@@ -85,10 +85,10 @@ vim.api.nvim_set_keymap('n', '<F8>', '<cmd>GlobalListDefinitions<CR>', {noremap 
 :GlobalListReferences
 ```
 
-A telescope picker window will show up, select the symbol from telescope dialog,
-It will jump to the symbol reference file and location,
-if multiple references found, a quickfix window will be shown under current buffer, you can select
-specify reference in the quickfix window
+A Telescope selector window will be displayed, select the symbol from the dialog,
+it will jump to the symbol reference file and location,
+if multiple references are found, a quick fix window will be displayed under the current buffer, 
+you can select a specific reference in the quick fix window
 
 You can map list symbol references to some key, below use key \<C-F8\>
 
@@ -102,8 +102,7 @@ vim.api.nvim_set_keymap('n', '<C-F8>', '<cmd>GlobalListReferences<CR>', {noremap
 :GlobalFindCwordDefinitions
 ```
 
-Find the symbol definitions under cursor, if multiple definitions found, a quickfix window will be shown, 
-You can map this to some key.
+Finds the definition of the symbol under the cursor, if multiple definitions found, a quickfix window will be shown
 
 ### Find cursor word references
 
@@ -111,8 +110,7 @@ You can map this to some key.
 :GlobalFindCwordReferences
 ```
 
-Find the symbol references under cursor, if multiple references found, a quickfix window will be shown, 
-You can map this to some key.
+Finds the references of the symbol under the cursor, if multiple references found, a quickfix window will be shown
 
 ### List all symbol definitions
 
@@ -120,8 +118,8 @@ You can map this to some key.
 :GlobalListAllDefinitions
 ```
 
-This command work like 'GlobalListDefinitions', with the only difference:
-It will search for symbol definitions not only in current project but also in all tag file that add by 'GlobalAddPath'
+This command works just like "GlobalListDefinitions", the only difference is: it searches for symbol definitions 
+not only in the current project, but also in all tag files added via "GlobalAddPath"
 
 ### List all symbol reference
 
@@ -129,7 +127,7 @@ It will search for symbol definitions not only in current project but also in al
 :GlobalListAllReferences
 ```
 
-This command work like 'GlobalListReferences', with the only difference:
-It will search for symbol references not only in current project but also in all tag file that add by 'GlobalAddPath'
+This command works just like "GlobalListReferences", the only difference is: it searches for symbol definitions 
+not only in the current project, but also in all tag files added via "GlobalAddPath"
 
 
