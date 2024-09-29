@@ -68,9 +68,9 @@ Now you can find function or macro definitions that defines in the kernel header
 :GlobalListDefinitions
 ```
 
-A Telescope selector window will be displayed, select the symbol from the dialog,  
-it will jump to the symbol definition file and location,  
-if multiple definitions are found, a quick fix window will be displayed under the current buffer,  
+A Telescope selector window will be displayed, select the symbol from the dialog,
+it will jump to the symbol definition file and location,
+if multiple definitions are found, a quick fix window will be displayed under the current buffer,
 you can select a specific definition in the quick fix window
 
 You can map list symbol definitions to some key, below use key \<F8\>
@@ -85,9 +85,9 @@ vim.api.nvim_set_keymap('n', '<F8>', '<cmd>GlobalListDefinitions<CR>', {noremap 
 :GlobalListReferences
 ```
 
-A Telescope selector window will be displayed, select the symbol from the dialog,  
-it will jump to the symbol reference file and location,  
-if multiple references are found, a quick fix window will be displayed under the current buffer,  
+A Telescope selector window will be displayed, select the symbol from the dialog,
+it will jump to the symbol reference file and location,
+if multiple references are found, a quick fix window will be displayed under the current buffer,
 you can select a specific reference in the quick fix window
 
 You can map list symbol references to some key, below use key \<C-F8\>
