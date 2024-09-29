@@ -68,9 +68,9 @@ Now you can find function or macro definitions that defines in the kernel header
 :GlobalListDefinitions
 ```
 
-A Telescope selector window will be displayed, select the symbol from the dialog,
-it will jump to the symbol definition file and location,
-if multiple definitions are found, a quick fix window will be displayed under the current buffer, 
+A Telescope selector window will be displayed, select the symbol from the dialog,  
+it will jump to the symbol definition file and location,  
+if multiple definitions are found, a quick fix window will be displayed under the current buffer,  
 you can select a specific definition in the quick fix window
 
 You can map list symbol definitions to some key, below use key \<F8\>
@@ -85,9 +85,9 @@ vim.api.nvim_set_keymap('n', '<F8>', '<cmd>GlobalListDefinitions<CR>', {noremap 
 :GlobalListReferences
 ```
 
-A Telescope selector window will be displayed, select the symbol from the dialog,
-it will jump to the symbol reference file and location,
-if multiple references are found, a quick fix window will be displayed under the current buffer, 
+A Telescope selector window will be displayed, select the symbol from the dialog,  
+it will jump to the symbol reference file and location,  
+if multiple references are found, a quick fix window will be displayed under the current buffer,  
 you can select a specific reference in the quick fix window
 
 You can map list symbol references to some key, below use key \<C-F8\>
@@ -118,8 +118,8 @@ Finds the references of the symbol under the cursor, if multiple references foun
 :GlobalListAllDefinitions
 ```
 
-This command works just like "GlobalListDefinitions", the only difference is: it searches for symbol definitions 
-not only in the current project, but also in all tag files added via "GlobalAddPath"
+This command works just like "GlobalListDefinitions", the only difference is:  
+it searches for symbol definitions not only in the current project, but also in all tag files added via "GlobalAddPath"
 
 ### List all symbol reference
 
@@ -127,7 +127,7 @@ not only in the current project, but also in all tag files added via "GlobalAddP
 :GlobalListAllReferences
 ```
 
-This command works just like "GlobalListReferences", the only difference is: it searches for symbol definitions 
-not only in the current project, but also in all tag files added via "GlobalAddPath"
+This command works just like "GlobalListReferences", the only difference is:  
+it searches for symbol definitions not only in the current project, but also in all tag files added via "GlobalAddPath"
 
 
