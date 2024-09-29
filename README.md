@@ -128,6 +128,6 @@ it searches for symbol definitions not only in the current project, but also in 
 ```
 
 This command works just like "GlobalListReferences", the only difference is:  
-it searches for symbol definitions not only in the current project, but also in all tag files added via "GlobalAddPath"
+it searches for symbol references not only in the current project, but also in all tag files added via "GlobalAddPath"
 
 
