@@ -29,7 +29,7 @@ local function check_executable()
   return true
 end
 
-local function execute_global_cmd(global_cmd, extra_paths)
+local function execute_global_cmd(global_cmd, extra_paths, stop_if_current_project_found)
   vim.fn.setqflist({})
   vim.cmd("cclose")
 
@@ -41,23 +41,27 @@ local function execute_global_cmd(global_cmd, extra_paths)
   vim.cmd.cexpr(cmd)
   local qflist = vim.fn.getqflist()
 
-  if (extra_paths ~= nil) then
-    for _, path in ipairs(extra_paths) do
-      local cmd = "system(\"" .. global_cmd .. " -C " .. path .. "\")"
-      print("global_cmd:"  .. cmd)
-      vim.cmd.cexpr(cmd)
-      local path_qflist = vim.fn.getqflist()
-      if (#path_qflist ~= 0) then
-        for _, t in ipairs(path_qflist) do
-          table.insert(qflist, t)
-          -- for k,v in pairs(t) do
-          --   print("k:" .. k .. " v:" .. v)
-          -- end
+  if (#qflist == 0 or stop_if_current_project_found == false) then
+    if (extra_paths ~= nil) then
+      for _, path in ipairs(extra_paths) do
+        local cmd = "system(\"" .. global_cmd .. " -C " .. path .. "\")"
+        print("global_cmd:"  .. cmd)
+        vim.cmd.cexpr(cmd)
+        local path_qflist = vim.fn.getqflist()
+        if (#path_qflist ~= 0) then
+          for _, t in ipairs(path_qflist) do
+            table.insert(qflist, t)
+            -- for k,v in pairs(t) do
+            --   print("k:" .. k .. " v:" .. v)
+            -- end
+          end
         end
       end
     end
   end
+
   if (#qflist == 0) then
+    vim.o.errorformat = errorformat
     return
   end
 
@@ -73,14 +77,14 @@ local function execute_global_cmd(global_cmd, extra_paths)
   vim.o.errorformat = errorformat
 end
 
-local function find_definition(symbol, extra_paths)
+local function find_definition(symbol, extra_paths, stop_if_current_project_found)
   local global_cmd = "global -axd " .. symbol
-  execute_global_cmd(global_cmd, extra_paths)
+  execute_global_cmd(global_cmd, extra_paths, stop_if_current_project_found)
 end
 
-local function find_reference(symbol, extra_paths)
+local function find_reference(symbol, extra_paths, stop_if_current_project_found)
   local global_cmd = "global -s -axr " .. symbol
-  execute_global_cmd(global_cmd, extra_paths)
+  execute_global_cmd(global_cmd, extra_paths, stop_if_current_project_found)
 end
 
 -- TG --> telescope global
@@ -124,7 +128,7 @@ local function TG_definitions_preview(symbol)
 end
 
 local function TG_definitions_find(symbol)
-  find_definition(symbol, M.extra_paths)
+  find_definition(symbol, M.extra_paths, true)
 end
 
 M.TG_list_definitions = function(_)
@@ -192,7 +196,7 @@ end
 
 local function TG_references_find(symbol)
   -- references does not search extra tag files
-  find_reference(symbol, nil)
+  find_reference(symbol, nil, true)
 end
 
 M.TG_list_references = function(_)
@@ -303,7 +307,7 @@ local function TG_all_definitions_preview(symbol)
 end
 
 local function TG_all_definitions_find(symbol)
-  find_definition(symbol, M.extra_paths)
+  find_definition(symbol, M.extra_paths, false)
 end
 
 M.TG_list_all_definitions = function(_)
@@ -381,7 +385,7 @@ end
 
 local function TG_all_references_find(symbol)
   -- references does not search extra tag files
-  find_reference(symbol, M.extra_paths)
+  find_reference(symbol, M.extra_paths, false)
 end
 
 M.TG_list_all_references = function(_)
@@ -478,13 +482,13 @@ end
 M.find_cword_definitions = function()
     local cword = vim.fn.expand("<cword>")
 
-    find_definition(cword, M.extra_paths)
+    find_definition(cword, M.extra_paths, true)
 end
 
 M.find_cword_references = function()
     local cword = vim.fn.expand("<cword>")
 
-    find_reference(cword, nil)
+    find_reference(cword, nil, true)
 end
 
 M.add_extra_path = function(path)
