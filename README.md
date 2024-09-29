@@ -39,53 +39,6 @@ require("nvim-global").setup()
 
 Generate tags in current directory, if tags already generated, global will update it incrementally
 
-### List all symbol definitions
-
-```
-:GlobalListDefinition
-```
-
-Select the symbol from telescope dialog, it will jump to the symbol definition file and location,
-if multiple definitions found, a quickfix window will be shown under current buffer, you can select
-specify definition in the quickfix window
-
-You can map list symbol definitions to some key, below use key \<F8\>
-
-```
-vim.api.nvim_set_keymap('n', '<F8>', '<cmd>lua require("nvim-global").listdefinitions()<CR>', {noremap = true, silent = true})
-```
-
-### Find symbol definition
-
-```
-:GlobalFindDefinition <symbol>
-```
-
-Find symbol definitions, if multiple definitions found, a quickfix window will be shown
-
-### Find cursor word definition
-
-```
-:GlobalFindCwordDefinition
-```
-
-Find the symbol under cursor, if multiple definitions found, a quickfix window will be shown, 
-You can map this to some key.
-
-### Find symbol reference
-
-```
-:GlobalFindReference <symbol>
-```
-Find symbol reference, if multiple references found, a quickfix window will be shown
-
-### Show tag file information
-
-```
-:GlobalShowInfo
-```
-it will show the project's root directory and directory where tag databases exist. 
-
 ### Add extra tag files
 
 ```
@@ -108,4 +61,75 @@ Then add it in Neovim
 :GlobalAddPath /usr/src/linux-headers-6.8.0-40-generic
 ```
 Now you can find function or macro definitions that defines in the kernel headers.
+
+### List symbol definitions
+
+```
+:GlobalListDefinitions
+```
+
+A telescope picker window will show up, select the symbol from telescope dialog,
+It will jump to the symbol definition file and location,
+if multiple definitions found, a quickfix window will be shown under current buffer, you can select
+specify definition in the quickfix window
+
+You can map list symbol definitions to some key, below use key \<F8\>
+
+```
+vim.api.nvim_set_keymap('n', '<F8>', '<cmd>GlobalListDefinitions<CR>', {noremap = true, silent = true})
+```
+
+### List symbol references
+
+```
+:GlobalListReferences
+```
+
+A telescope picker window will show up, select the symbol from telescope dialog,
+It will jump to the symbol reference file and location,
+if multiple references found, a quickfix window will be shown under current buffer, you can select
+specify reference in the quickfix window
+
+You can map list symbol references to some key, below use key \<C-F8\>
+
+```
+vim.api.nvim_set_keymap('n', '<C-F8>', '<cmd>GlobalListReferences<CR>', {noremap = true, silent = true})
+```
+
+### Find cursor word definition
+
+```
+:GlobalFindCwordDefinitions
+```
+
+Find the symbol definitions under cursor, if multiple definitions found, a quickfix window will be shown, 
+You can map this to some key.
+
+### Find cursor word references
+
+```
+:GlobalFindCwordReferences
+```
+
+Find the symbol references under cursor, if multiple references found, a quickfix window will be shown, 
+You can map this to some key.
+
+### List all symbol definitions
+
+```
+:GlobalListAllDefinitions
+```
+
+This command work like 'GlobalListDefinitions', with the only difference:
+It will search for symbol definitions not only in current project but also in all tag file that add by 'GlobalAddPath'
+
+### List all symbol reference
+
+```
+:GlobalListAllReferences
+```
+
+This command work like 'GlobalListReferences', with the only difference:
+It will search for symbol references not only in current project but also in all tag file that add by 'GlobalAddPath'
+
 

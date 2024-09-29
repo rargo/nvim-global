@@ -4,148 +4,130 @@ local previewers = require "telescope.previewers"
 
 
 -- TODO
--- 1. multiple tags support
--- 2. global tags as completion resource
+-- 1. global tags as completion resource
+-- 2. preview window optimize
 
 local M = {}
 
 M.extra_paths = {}
 
 local function run_command(cmd)
-	local handle = io.popen(cmd)
-	local str = handle:read("*a")
-	handle:close()
+  local handle = io.popen(cmd)
+  local str = handle:read("*a")
+  handle:close()
 
-	return str
+  return str
 end
 
-local function get_global_definitions()
-	local str = run_command("global -c")
-	local definitions = vim.split(str, "\n")
-	local str = run_command("global -s -c")
-	local t = vim.split(str, "\n")
-	for _, v in ipairs(t) do
-		table.insert(definitions, v)
-	end
-	
-	return definitions
-end
-
-local function build_definition_preview(symbol, extra_paths)
-	local preview_tbl = {}
-	local str = run_command("global -xd " .. symbol)
-	-- global -axd output quickfix format:
-	--       symbol linenumber file
-	local preview_tbl = vim.split(str, "\n")
-
-	if (extra_paths ~= nil) then
-		for _, path in ipairs(extra_paths) do
-			local str = run_command("global -xd " .. symbol .. " -C " .. path)
-			if (str ~= "") then
-				local tbl = vim.split(str, "\n")
-				for _,v in ipairs(tbl) do
-					table.insert(preview_tbl, v)
-				end
-			end
-		end
-	end
-
-	return preview_tbl
-end
 
 local function check_executable()
-	if (vim.fn.executable("global") == 0 or vim.fn.executable("gtags") == 0) then
-		print("Error, global not found, please install it first!")
-		return false
-	end
+  if (vim.fn.executable("global") == 0 or vim.fn.executable("gtags") == 0) then
+    print("Error, global not found, please install it first!")
+    return false
+  end
 
-	return true
+  return true
 end
 
 local function execute_global_cmd(global_cmd, extra_paths)
-	vim.fn.setqflist({})
-	vim.cmd("cclose")
+  vim.fn.setqflist({})
+  vim.cmd("cclose")
 
-	local errorformat = vim.o.errorformat
-	vim.o.errorformat="%.%# %l %f %m"
+  local errorformat = vim.o.errorformat
+  vim.o.errorformat="%.%# %l %f %m"
 
-	local cmd = "system(\"" .. global_cmd .. "\")"
-	vim.cmd.cexpr(cmd)
-	local qflist = vim.fn.getqflist()
+  local cmd = "system(\"" .. global_cmd .. "\")"
+  print("global_cmd:"  .. cmd)
+  vim.cmd.cexpr(cmd)
+  local qflist = vim.fn.getqflist()
 
-	if (extra_paths ~= nil) then
-		for _, path in ipairs(extra_paths) do
-			local cmd = "system(\"" .. global_cmd .. " -C " .. path .. "\")"
-			print("global_cmd:"  .. cmd)
-			vim.cmd.cexpr(cmd)
-			local path_qflist = vim.fn.getqflist()
-			if (#path_qflist ~= 0) then
-				for _, t in ipairs(path_qflist) do
-					table.insert(qflist, t)
-					-- for k,v in pairs(t) do
-					-- 	print("k:" .. k .. " v:" .. v)
-					-- end
-				end
-			end
-		end
-	end
-	if (#qflist == 0) then
-		return
-	end
+  if (extra_paths ~= nil) then
+    for _, path in ipairs(extra_paths) do
+      local cmd = "system(\"" .. global_cmd .. " -C " .. path .. "\")"
+      print("global_cmd:"  .. cmd)
+      vim.cmd.cexpr(cmd)
+      local path_qflist = vim.fn.getqflist()
+      if (#path_qflist ~= 0) then
+        for _, t in ipairs(path_qflist) do
+          table.insert(qflist, t)
+          -- for k,v in pairs(t) do
+          --   print("k:" .. k .. " v:" .. v)
+          -- end
+        end
+      end
+    end
+  end
+  if (#qflist == 0) then
+    return
+  end
 
-	vim.fn.setqflist(qflist)
+  vim.fn.setqflist(qflist)
 
-	if (#qflist >= 2) then
-		vim.cmd("rightbelow cw")
-		vim.cmd("cc! 1", { mods = { slient = true, emsg_silent = true }})
-	end
-	vim.cmd("redraw!")
+  if (#qflist >= 2) then
+    vim.cmd("rightbelow cw")
+    vim.cmd("cc! 1", { mods = { slient = true, emsg_silent = true }})
+  end
+  vim.cmd("redraw!")
 
-	--restore errorformat
-	vim.o.errorformat = errorformat
+  --restore errorformat
+  vim.o.errorformat = errorformat
 end
 
-local function find_definition(symbol)
-	local global_cmd = "global -axd " .. symbol
-	execute_global_cmd(global_cmd, M.extra_paths)
+local function find_definition(symbol, extra_paths)
+  local global_cmd = "global -axd " .. symbol
+  execute_global_cmd(global_cmd, extra_paths)
 end
 
-local function find_reference(symbol)
-	local global_cmd = "global -axr " .. symbol
-	execute_global_cmd(global_cmd)
+local function find_reference(symbol, extra_paths)
+  local global_cmd = "global -s -axr " .. symbol
+  execute_global_cmd(global_cmd, extra_paths)
 end
 
-M.setup = function(config)
-  vim.api.nvim_create_user_command("GlobalGenerateTags", function(opt)
-	M.updategtags()
-  end, { nargs = 0, desc = "Generate gtags, if tags already exist, will update it incrementally" })
+-- TG --> telescope global
+local function TG_list_symbols()
+  local symbols
+  local str
 
-  vim.api.nvim_create_user_command("GlobalListDefinition", function(opt)
-	M.listdefinitions()
-  end, { nargs = 0, desc = "List symbol definition" })
+  str = run_command("global -c")
+  symbols = vim.split(str, "\n")
 
-  vim.api.nvim_create_user_command("GlobalFindDefinition", function(opt)
-	M.finddefinition(opt.args)
-  end, { nargs = 1, desc = "Find symbol definition" })
+  str = run_command("global -s -c")
+  local t = vim.split(str, "\n")
+  for _, v in ipairs(t) do
+    table.insert(symbols, v)
+  end
 
-  vim.api.nvim_create_user_command("GlobalFindCwordDefinition", function(opt)
-	M.findcworddefinition()
-  end, { nargs = 0, desc = "Find cursor word definition" })
-
-  vim.api.nvim_create_user_command("GlobalFindReference", function(opt)
-	M.findreference(opt.args)
-  end, { nargs = 1, desc = "Find symbol reference" })
-
-  vim.api.nvim_create_user_command("GlobalShowInfo", function(opt)
-	M.showinfo(opt.args)
-  end, { nargs = 0, desc = "Show tag info" })
-
-  vim.api.nvim_create_user_command("GlobalAddPath", function(opt)
-	M.addextrapath(opt.args)
-  end, { nargs = 1, desc = "Add extra tags", complete = "dir" })
+  return symbols
 end
 
-M.listdefinitions = function(_)
+local function TG_definitions_preview(symbol)
+  local preview_tbl = {}
+  local cmd = "global -xd "
+
+  local str = run_command(cmd .. symbol)
+  -- global -axd output quickfix format:
+  --       symbol linenumber file
+  local preview_tbl = vim.split(str, "\n")
+
+  -- definitions will include extra tag files result
+  for _, path in ipairs(M.extra_paths) do
+    local str = run_command(cmd .. symbol .. " -C " .. path)
+    if (str ~= "") then
+      local tbl = vim.split(str, "\n")
+      for _,v in ipairs(tbl) do
+        table.insert(preview_tbl, v)
+      end
+    end
+  end
+
+  return preview_tbl
+end
+
+local function TG_definitions_find(symbol)
+  find_definition(symbol, M.extra_paths)
+end
+
+M.TG_list_definitions = function(_)
   if (check_executable() == false) then
     return
   end
@@ -165,7 +147,7 @@ M.listdefinitions = function(_)
   -- Build preivewer and set highlighting for each to "sshconfig"
   local previewer = previewers.new_buffer_previewer {
     define_preview = function(self, entry)
-      local lines = build_definition_preview(entry.value, M.extra_paths)
+      local lines = TG_definitions_preview(entry.value)
       vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
       --require("telescope.previewers.utils").highlighter(self.state.bufnr, "sshconfig")
     end,
@@ -174,10 +156,10 @@ M.listdefinitions = function(_)
   -- Build picker to run connect function when a host is selected
   pickers
     .new(_, {
-      prompt_title = "global find definitions",
+      prompt_title = "find symbol **Definitions**",
       previewer = previewer,
       finder = finders.new_table {
-        results = get_global_definitions()
+        results = TG_list_symbols()
       },
       sorter = sorters.get_generic_fuzzy_sorter(),
       attach_mappings = function(prompt_bufnr, _)
@@ -187,7 +169,7 @@ M.listdefinitions = function(_)
           local selection = state.get_selected_entry()
           --print("selection is: " .. selection[1])
           -- find symbol definition
-          find_definition(selection[1])
+          TG_definitions_find(selection[1])
         end)
         return true
       end,
@@ -195,90 +177,375 @@ M.listdefinitions = function(_)
     :find()
 end
 
-M.updategtags = function()
-	if (check_executable() == false) then
-		return
-	end
+local function TG_references_preview(symbol)
+  local preview_tbl = {}
+  local cmd = "global -xr "
 
-	local str = run_command("global -p")
-	-- if no gtag files found, global -p will output error message to stderr, io.popen cannot capture it 
-	-- so the str will be empty string
-	if (str == "") then 
-		print("generating new tags ...")
-		run_command("gtags")
-		print("Done")
-	else
-		print("updating exists tags ...")
-		run_command("global -u")
-		print("Done")
-	end
+  local str = run_command(cmd .. symbol)
+  -- global -axd output quickfix format:
+  --       symbol linenumber file
+  local preview_tbl = vim.split(str, "\n")
+
+  -- references doest not include extra tag files result
+  return preview_tbl
 end
 
-M.finddefinition = function(symbol)
-	if (check_executable() == false) then
-		return
-	end
-
-	find_definition(symbol)
+local function TG_references_find(symbol)
+  -- references does not search extra tag files
+  find_reference(symbol, nil)
 end
 
-M.findreference = function(symbol)
-	if (check_executable() == false) then
-		return
-	end
+M.TG_list_references = function(_)
+  if (check_executable() == false) then
+    return
+  end
 
-	find_reference(symbol)
+  local pickers, finders, actions
+  if pcall(require, "telescope") then
+    pickers = require "telescope.pickers"
+    finders = require "telescope.finders"
+    actions = require "telescope.actions"
+  else
+    error "Cannot find telescope!"
+  end
+
+  -- local connections = require "remote-sshfs.connections"
+  -- local hosts = connections.list_hosts()
+
+  -- Build preivewer and set highlighting for each to "sshconfig"
+  local previewer = previewers.new_buffer_previewer {
+    define_preview = function(self, entry)
+      local lines = TG_references_preview(entry.value)
+      vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
+      --require("telescope.previewers.utils").highlighter(self.state.bufnr, "sshconfig")
+    end,
+  }
+
+  -- Build picker to run connect function when a host is selected
+  pickers
+    .new(_, {
+      prompt_title = "find symbol **References**",
+      previewer = previewer,
+      finder = finders.new_table {
+        results = TG_list_symbols()
+      },
+      sorter = sorters.get_generic_fuzzy_sorter(),
+      attach_mappings = function(prompt_bufnr, _)
+        actions.select_default:replace(function()
+          actions.close(prompt_bufnr)
+
+          local selection = state.get_selected_entry()
+          --print("selection is: " .. selection[1])
+          -- find symbol definition
+          TG_references_find(selection[1])
+        end)
+        return true
+      end,
+    })
+    :find()
 end
 
-M.showinfo = function()
-	if (check_executable() == false) then
-		return
-	end
+local function TG_list_all_symbols()
+    local symbols
+    local str
 
-	local root = run_command("global --print root")
-	local dbpath = run_command("global --print dbpath")
-	print("Current directory:")
-	print("   root: " .. root)
-	print("   dbpath: " .. dbpath)
+    str = run_command("global -c")
+    symbols = vim.split(str, "\n")
 
-	if (M.extra_paths ~= nil) then
-		for _, path in ipairs(M.extra_paths) do
-			local root = run_command("global --print root -C " .. path)
-			local dbpath = run_command("global --print dbpath -C " .. path)
-			print(path .. ":")
-			print("   root: " .. root)
-			print("   dbpath: " .. dbpath)
-		end
-	end
+    str = run_command("global -s -c")
+    local t = vim.split(str, "\n")
+    for _, v in ipairs(t) do
+        table.insert(symbols, v)
+    end
+
+    -- definitions will include extra tag files result
+    for _, path in ipairs(M.extra_paths) do
+        str = run_command("global -c -C " .. path)
+        if (str ~= "") then
+            local tbl = vim.split(str, "\n")
+            for _,v in ipairs(tbl) do
+                table.insert(symbols, v)
+            end
+        end
+
+        str = run_command("global -s -c -C " .. path)
+        if (str ~= "") then
+            local tbl = vim.split(str, "\n")
+            for _,v in ipairs(tbl) do
+                table.insert(symbols, v)
+            end
+        end
+    end
+
+    return symbols
 end
 
-M.findcworddefinition = function()
-	local cword = vim.fn.expand("<cword>")
+local function TG_all_definitions_preview(symbol)
+  local preview_tbl = {}
+  local cmd = "global -xd "
 
-	M.finddefinition(cword)
+  local str = run_command(cmd .. symbol)
+  -- global -axd output quickfix format:
+  --       symbol linenumber file
+  local preview_tbl = vim.split(str, "\n")
+
+  for _, path in ipairs(M.extra_paths) do
+    local str = run_command(cmd .. symbol .. " -C " .. path)
+    if (str ~= "") then
+      local tbl = vim.split(str, "\n")
+      for _,v in ipairs(tbl) do
+        table.insert(preview_tbl, v)
+      end
+    end
+  end
+
+  return preview_tbl
 end
 
-M.addextrapath = function(path)
-	if (check_executable() == false) then
-		return
-	end
+local function TG_all_definitions_find(symbol)
+  find_definition(symbol, M.extra_paths)
+end
 
-	local absolute_path = vim.fn.expand(path)
-	local tag_file = absolute_path .. "/GTAGS"
-	if (vim.fn.filereadable(tag_file) == 0) then
-		print("Error, GTAGS file not found in \"" .. path .. "\". Please generate it first")
-		return
-	end
-	
-	for _,v in ipairs(M.extra_paths) do
-		if (v == absolute_path) then
-			print("path: \"" .. path .. "\" already added")
-			return
-		end
-	end
+M.TG_list_all_definitions = function(_)
+  if (check_executable() == false) then
+    return
+  end
 
-	table.insert(M.extra_paths, absolute_path)
-	print("\"" .. path .. "\" added")
+  local pickers, finders, actions
+  if pcall(require, "telescope") then
+    pickers = require "telescope.pickers"
+    finders = require "telescope.finders"
+    actions = require "telescope.actions"
+  else
+    error "Cannot find telescope!"
+  end
+
+  -- local connections = require "remote-sshfs.connections"
+  -- local hosts = connections.list_hosts()
+
+  -- Build preivewer and set highlighting for each to "sshconfig"
+  local previewer = previewers.new_buffer_previewer {
+    define_preview = function(self, entry)
+      local lines = TG_all_definitions_preview(entry.value)
+      vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
+      --require("telescope.previewers.utils").highlighter(self.state.bufnr, "sshconfig")
+    end,
+  }
+
+  -- Build picker to run connect function when a host is selected
+  pickers
+    .new(_, {
+      prompt_title = "find **All** symbol **Definitions**",
+      previewer = previewer,
+      finder = finders.new_table {
+        results = TG_list_all_symbols()
+      },
+      sorter = sorters.get_generic_fuzzy_sorter(),
+      attach_mappings = function(prompt_bufnr, _)
+        actions.select_default:replace(function()
+          actions.close(prompt_bufnr)
+
+          local selection = state.get_selected_entry()
+          --print("selection is: " .. selection[1])
+          -- find symbol definition
+          TG_all_definitions_find(selection[1])
+        end)
+        return true
+      end,
+    })
+    :find()
+end
+
+local function TG_all_references_preview(symbol)
+  local preview_tbl = {}
+  local cmd = "global -xr "
+
+  local str = run_command(cmd .. symbol)
+  -- global -axd output quickfix format:
+  --       symbol linenumber file
+  local preview_tbl = vim.split(str, "\n")
+
+  for _, path in ipairs(M.extra_paths) do
+    local str = run_command(cmd .. symbol .. " -C " .. path)
+    if (str ~= "") then
+      local tbl = vim.split(str, "\n")
+      for _,v in ipairs(tbl) do
+        table.insert(preview_tbl, v)
+      end
+    end
+  end
+
+  -- references doest not include extra tag files result
+  return preview_tbl
+end
+
+local function TG_all_references_find(symbol)
+  -- references does not search extra tag files
+  find_reference(symbol, M.extra_paths)
+end
+
+M.TG_list_all_references = function(_)
+  if (check_executable() == false) then
+    return
+  end
+
+  local pickers, finders, actions
+  if pcall(require, "telescope") then
+    pickers = require "telescope.pickers"
+    finders = require "telescope.finders"
+    actions = require "telescope.actions"
+  else
+    error "Cannot find telescope!"
+  end
+
+  -- local connections = require "remote-sshfs.connections"
+  -- local hosts = connections.list_hosts()
+
+  -- Build preivewer and set highlighting for each to "sshconfig"
+  local previewer = previewers.new_buffer_previewer {
+    define_preview = function(self, entry)
+      local lines = TG_all_references_preview(entry.value)
+      vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
+      --require("telescope.previewers.utils").highlighter(self.state.bufnr, "sshconfig")
+    end,
+  }
+
+  -- Build picker to run connect function when a host is selected
+  pickers
+    .new(_, {
+      prompt_title = "find **All** symbol **References**",
+      previewer = previewer,
+      finder = finders.new_table {
+        results = TG_list_all_symbols()
+      },
+      sorter = sorters.get_generic_fuzzy_sorter(),
+      attach_mappings = function(prompt_bufnr, _)
+        actions.select_default:replace(function()
+          actions.close(prompt_bufnr)
+
+          local selection = state.get_selected_entry()
+          --print("selection is: " .. selection[1])
+          -- find symbol definition
+          TG_all_references_find(selection[1])
+        end)
+        return true
+      end,
+    })
+    :find()
+end
+
+M.update_gtags = function()
+  if (check_executable() == false) then
+    return
+  end
+
+  local str = run_command("global -p")
+  -- if no gtag files found, global -p will output error message to stderr, io.popen cannot capture it 
+  -- so the str will be empty string
+  if (str == "") then 
+    print("generating new tags ...")
+    run_command("gtags")
+    print("Done")
+  else
+    print("updating exists tags ...")
+    run_command("global -u")
+    print("Done")
+  end
+end
+
+M.show_info = function()
+  if (check_executable() == false) then
+    return
+  end
+
+  local root = run_command("global --print root")
+  local dbpath = run_command("global --print dbpath")
+  print("Current directory:")
+  print("   root: " .. root)
+  print("   dbpath: " .. dbpath)
+
+  if (M.extra_paths ~= nil) then
+    for _, path in ipairs(M.extra_paths) do
+      local root = run_command("global --print root -C " .. path)
+      local dbpath = run_command("global --print dbpath -C " .. path)
+      print(path .. ":")
+      print("   root: " .. root)
+      print("   dbpath: " .. dbpath)
+    end
+  end
+end
+
+M.find_cword_definitions = function()
+    local cword = vim.fn.expand("<cword>")
+
+    find_definition(cword, M.extra_paths)
+end
+
+M.find_cword_references = function()
+    local cword = vim.fn.expand("<cword>")
+
+    find_reference(cword, nil)
+end
+
+M.add_extra_path = function(path)
+  if (check_executable() == false) then
+    return
+  end
+
+  local absolute_path = vim.fn.expand(path)
+  local tag_file = absolute_path .. "/GTAGS"
+  if (vim.fn.filereadable(tag_file) == 0) then
+    print("Error, GTAGS file not found in \"" .. path .. "\". Please generate it first")
+    return
+  end
+
+  for _,v in ipairs(M.extra_paths) do
+    if (v == absolute_path) then
+      print("path: \"" .. path .. "\" already added")
+      return
+    end
+  end
+
+  table.insert(M.extra_paths, absolute_path)
+  print("\"" .. path .. "\" added")
+end
+
+M.setup = function(config)
+  vim.api.nvim_create_user_command("GlobalGenerateTags", function(opt)
+    M.update_gtags()
+  end, { nargs = 0, desc = "Generate gtags, if tags already exist, will update it incrementally" })
+
+  vim.api.nvim_create_user_command("GlobalListDefinitions", function(opt)
+    M.TG_list_definitions()
+  end, { nargs = 0, desc = "List symbol definitions" })
+
+  vim.api.nvim_create_user_command("GlobalListReferences", function(opt)
+    M.TG_list_references()
+  end, { nargs = 0, desc = "List symbol references" })
+
+  vim.api.nvim_create_user_command("GlobalListAllDefinitions", function(opt)
+    M.TG_list_all_definitions()
+  end, { nargs = 0, desc = "List all symbol definitions" })
+
+  vim.api.nvim_create_user_command("GlobalListAllReferences", function(opt)
+    M.TG_list_all_references()
+  end, { nargs = 0, desc = "List all symbol references" })
+
+  vim.api.nvim_create_user_command("GlobalFindCwordDefinitions", function(opt)
+    M.find_cword_definitions()
+  end, { nargs = 0, desc = "Find cursor word definitions" })
+
+  vim.api.nvim_create_user_command("GlobalFindCwordReferences", function(opt)
+    M.find_cword_references()
+  end, { nargs = 0, desc = "Find cursor word references" })
+
+  vim.api.nvim_create_user_command("GlobalShowInfo", function(opt)
+    M.show_info(opt.args)
+  end, { nargs = 0, desc = "Show tag info" })
+
+  vim.api.nvim_create_user_command("GlobalAddPath", function(opt)
+    M.add_extra_path(opt.args)
+  end, { nargs = 1, desc = "Add extra tag file path", complete = "dir" })
 end
 
 return M
