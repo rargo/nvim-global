@@ -84,7 +84,7 @@ local function find_reference(symbol, extra_paths, stop_if_current_project_found
   execute_global_cmd(global_cmd, extra_paths, stop_if_current_project_found)
 end
 
-local function telescope_symbols(definition, extra_paths)
+local function telescope_symbols(definition, current_project)
   local symbols
   local str
   local cmd = ""
@@ -102,7 +102,7 @@ local function telescope_symbols(definition, extra_paths)
 	  end
   --end
 
-  if (extra_paths == false) then
+  if (current_project == true) then
     return symbols
   end
 
@@ -150,7 +150,7 @@ local function format_preview(t)
   return format_preview_tbl
 end
 
-local function telescope_preview(definition, extra_paths, symbol)
+local function telescope_preview(definition, current_project, symbol)
   local preview_tbl = {}
   local cmd = ""
   if (definition) then
@@ -164,11 +164,11 @@ local function telescope_preview(definition, extra_paths, symbol)
   --       symbol linenumber file
   local preview_tbl = vim.split(str, "\n")
 
-  -- definitions will include extra tag files result
-  if (extra_paths == false) then
+  if (definition == false and current_project == true) then
     return format_preview(preview_tbl)
   end
 
+  -- definitions will include extra tag files result
   for _, path in ipairs(M.extra_paths) do
     local str = run_command(cmd .. symbol .. " -C " .. path)
     if (str ~= "") then
@@ -182,18 +182,22 @@ local function telescope_preview(definition, extra_paths, symbol)
   return format_preview(preview_tbl)
 end
 
-local function telescope_on_selection(definition, extra_paths, symbol)
+local function telescope_on_selection(definition, current_project, symbol)
   local global_cmd = ""
   if (definition) then
     global_cmd = "global -axd " .. symbol
-    execute_global_cmd(global_cmd, extra_paths, true)
+    execute_global_cmd(global_cmd, true, true)
   else
     global_cmd = "global -s -axr " .. symbol
-    execute_global_cmd(global_cmd, extra_paths, true)
+    if (current_project == true) then
+      execute_global_cmd(global_cmd, false, true)
+    else
+      execute_global_cmd(global_cmd, true, true)
+    end
   end
 end
 
-local function telescope_global_picker(definition, extra_paths)
+local function telescope_global_picker(definition, current_project)
   if (check_executable() == false) then
     return
   end
@@ -213,7 +217,7 @@ local function telescope_global_picker(definition, extra_paths)
   -- Build preivewer and set highlighting for each to "sshconfig"
   local previewer = previewers.new_buffer_previewer {
     define_preview = function(self, entry)
-      local lines = telescope_preview(definition, extra_paths, entry.value)
+      local lines = telescope_preview(definition, current_project, entry.value)
       vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
       --require("telescope.previewers.utils").highlighter(self.state.bufnr, "sshconfig")
     end,
@@ -230,7 +234,7 @@ local function telescope_global_picker(definition, extra_paths)
       prompt_title = _prompt_title,
       previewer = previewer,
       finder = finders.new_table {
-        results = telescope_symbols(definition, extra_paths)
+        results = telescope_symbols(definition, current_project)
       },
       sorter = sorters.get_generic_fuzzy_sorter(),
       attach_mappings = function(prompt_bufnr, _)
@@ -240,7 +244,7 @@ local function telescope_global_picker(definition, extra_paths)
           local selection = state.get_selected_entry()
           --print("selection is: " .. selection[1])
           -- find symbol definition
-          telescope_on_selection(definition, extra_paths, selection[1])
+          telescope_on_selection(definition, current_project, selection[1])
         end)
         return true
       end,
@@ -330,19 +334,19 @@ M.setup = function(config)
   end, { nargs = 0, desc = "Generate gtags, if tags already exist, will update it incrementally" })
 
   vim.api.nvim_create_user_command("GlobalListDefinitions", function(opt)
-    telescope_global_picker(true, false)
+    telescope_global_picker(true, true)
   end, { nargs = 0, desc = "List symbol definitions" })
 
   vim.api.nvim_create_user_command("GlobalListReferences", function(opt)
-    telescope_global_picker(false, false)
+    telescope_global_picker(false, true)
   end, { nargs = 0, desc = "List symbol references" })
 
   vim.api.nvim_create_user_command("GlobalListAllDefinitions", function(opt)
-    telescope_global_picker(true, true)
+    telescope_global_picker(true, false)
   end, { nargs = 0, desc = "List all symbol definitions" })
 
   vim.api.nvim_create_user_command("GlobalListAllReferences", function(opt)
-    telescope_global_picker(false, true)
+    telescope_global_picker(false, false)
   end, { nargs = 0, desc = "List all symbol references" })
 
   vim.api.nvim_create_user_command("GlobalFindCwordDefinitions", function(opt)
