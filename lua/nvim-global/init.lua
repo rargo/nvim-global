@@ -93,17 +93,19 @@ local function telescope_symbols(definition, current_project)
   str = run_command(cmd)
   symbols = vim.split(str, "\n")
 
-  --if (definition == false) then
-    cmd = "global -s -c"
-	  str = run_command(cmd)
-	  local t = vim.split(str, "\n")
-	  for _, v in ipairs(t) do
-      table.insert(symbols, v)
-	  end
-  --end
-
   if (current_project == true) then
-    return symbols
+    if (definition == true and #M.extra_paths == 0) then
+      -- TODO if no extra tag files, we don't list other project symbols
+      return symbols
+    else
+      cmd = "global -s -c"
+      str = run_command(cmd)
+      local t = vim.split(str, "\n")
+      for _, v in ipairs(t) do
+        table.insert(symbols, v)
+      end
+      return symbols
+    end
   end
 
   for _, path in ipairs(M.extra_paths) do
