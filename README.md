@@ -6,7 +6,7 @@ Supports multiple tag files. Useful for finding symbols defined in other project
 
 To use nvim-global, you need to install the GNU global package first. In Ubuntu or Debian systems, use "sudo apt-get install global".
 
-Neovim has stopped supporting cscope. Despite treesitter and LSP, I still prefer to use global in my work scenarios.
+Neovim has stopped supporting cscope. Despite treesitter and LSP, global still is useful in some scenarios, like kernel module develop.
 
 ## ⚡️ Requirements
 
@@ -31,13 +31,15 @@ require("nvim-global").setup()
 
 ## 💻 Commands
 
-### Generate tag files in current directory
+### Update tag files in current directory
 
 ```
 :GlobalUpdateTags
 ```
 
-Generate tags in current directory, if tags already generated, global will update it incrementally
+Update tags in current directory, if tags already generated, global will update it incrementally.
+If tag files not exist, will call gtags to generate tag files
+
 
 ### Add extra tag files
 
