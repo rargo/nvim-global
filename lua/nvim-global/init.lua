@@ -331,9 +331,9 @@ M.add_extra_path = function(path)
 end
 
 M.setup = function(config)
-  vim.api.nvim_create_user_command("GlobalGenerateTags", function(opt)
+  vim.api.nvim_create_user_command("GlobalUpdateTags", function(opt)
     M.update_gtags()
-  end, { nargs = 0, desc = "Generate gtags, if tags already exist, will update it incrementally" })
+  end, { nargs = 0, desc = "Update tags, if tags not exist, will generate tags" })
 
   vim.api.nvim_create_user_command("GlobalListDefinitions", function(opt)
     telescope_global_picker(true, true)

@@ -34,7 +34,7 @@ require("nvim-global").setup()
 ### Generate tag files in current directory
 
 ```
-:GlobalGenerateTags
+:GlobalUpdateTags
 ```
 
 Generate tags in current directory, if tags already generated, global will update it incrementally
