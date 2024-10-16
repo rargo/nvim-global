@@ -106,22 +106,6 @@ You can map list symbol references to some key, below use key \<C-F8\>
 vim.api.nvim_set_keymap('n', '<C-F8>', '<cmd>GlobalListReferences<CR>', {noremap = true, silent = true})
 ```
 
-### Find cursor word definition
-
-```
-:GlobalFindCwordDefinitions
-```
-
-Finds the definition of the symbol under the cursor, if multiple definitions found, a quickfix window will be shown
-
-### Find cursor word references
-
-```
-:GlobalFindCwordReferences
-```
-
-Finds the references of the symbol under the cursor, if multiple references found, a quickfix window will be shown
-
 ### List all symbol definitions
 
 ```
@@ -140,4 +124,19 @@ it searches for symbol definitions not only in the current project, but also in 
 This command works just like "GlobalListReferences", the only difference is:  
 it searches for symbol references not only in the current project, but also in all tag files added via "GlobalAddPath"
 
+### Find cursor word definition
+
+```
+:GlobalFindCwordDefinitions
+```
+
+Finds the definition of the symbol under the cursor, if multiple definitions found, a quickfix window will be shown
+
+### Find cursor word references
+
+```
+:GlobalFindCwordReferences
+```
+
+Finds the references of the symbol under the cursor, if multiple references found, a quickfix window will be shown
 
