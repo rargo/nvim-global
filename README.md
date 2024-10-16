@@ -1,6 +1,6 @@
 ## ✨ Features
 
-nvim-global is a Neovim plugin that uses GNU global to generate tags, find symbol definitions, and find symbol references.
+nvim-global is a Neovim plugin that uses [Telescope](https://github.com/nvim-telescope/telescope.nvim) and GNU global to list symbol definitions and references.
 
 Supports multiple tag files. Useful for finding symbols defined in other projects, for example, in libraries, kernel header files.
 
@@ -63,6 +63,14 @@ Then add it in Neovim
 :GlobalAddPath /usr/src/linux-headers-6.8.0-40-generic
 ```
 Now you can find function or macro definitions that defines in the kernel headers.
+
+### Add kernel headers
+
+```
+:GlobalAddKernelHeader
+```
+
+If you have already generate tags file in the kernel header dir("/usr/src/linux-headers-`uname -r`), you can use this command to add the kernel header files directly
 
 ### List symbol definitions
 
