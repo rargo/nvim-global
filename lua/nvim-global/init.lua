@@ -498,7 +498,7 @@ M.setup = function(options)
     M.add_extra_path(opt.args)
   end, { nargs = 1, desc = "Add extra tag file path", complete = "dir" })
 
-  vim.api.nvim_create_user_command("GlobalAddKernelHeader", function(opt)
+  vim.api.nvim_create_user_command("GlobalAddKernelHeaders", function(opt)
     M.add_kernel_header(opt.args)
   end, { nargs = 0, desc = "Add kernel header files in /usr/src/linux-headers-`uname -r`"})
 end

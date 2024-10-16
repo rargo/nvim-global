@@ -75,7 +75,7 @@ Now you can find function or macro definitions that defines in the kernel header
 ### Add kernel headers
 
 ```
-:GlobalAddKernelHeader
+:GlobalAddKernelHeaders
 ```
 
 If you have already generate tags file in the kernel header dir("/usr/src/linux-headers-\`uname -r\`), you can use this command to add the kernel header files directly
