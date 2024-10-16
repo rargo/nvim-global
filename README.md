@@ -70,7 +70,7 @@ Now you can find function or macro definitions that defines in the kernel header
 :GlobalAddKernelHeader
 ```
 
-If you have already generate tags file in the kernel header dir("/usr/src/linux-headers-`uname -r`), you can use this command to add the kernel header files directly
+If you have already generate tags file in the kernel header dir("/usr/src/linux-headers-\`uname -r\`), you can use this command to add the kernel header files directly
 
 ### List symbol definitions
 
