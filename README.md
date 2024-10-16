@@ -121,7 +121,7 @@ vim.api.nvim_set_keymap('n', '<C-F8>', '<cmd>GlobalListReferences<CR>', {noremap
 ```
 
 This command works just like "GlobalListDefinitions", the only difference is:  
-it searches for symbol definitions not only in the current project, but also in all tag files added via "GlobalAddPath"
+it searches for symbol definitions not only in the current project, but also in all tag files added via "GlobalAddPath" and "GlobalAddKernelHeader"
 
 ### List all symbol references
 
@@ -130,7 +130,7 @@ it searches for symbol definitions not only in the current project, but also in 
 ```
 
 This command works just like "GlobalListReferences", the only difference is:  
-it searches for symbol references not only in the current project, but also in all tag files added via "GlobalAddPath"
+it searches for symbol references not only in the current project, but also in all tag files added via "GlobalAddPath" and "GlobalAddKernelHeader"
 
 ### Find cursor word definitions
 
