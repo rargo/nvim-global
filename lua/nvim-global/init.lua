@@ -9,6 +9,12 @@ local M = {}
 
 M.extra_paths = {}
 
+M.default_options = {
+  Trouble = false,
+}
+
+M.options = {}
+
 local function run_command(cmd)
   local handle = io.popen(cmd)
   local str = handle:read("*a")
@@ -109,6 +115,8 @@ local function global_execute_quickfix(global_cmd, current_project, extra_paths,
   end
 
 ::done::
+  --restore errorformat
+  vim.o.errorformat = errorformat
 
   if (#qflist == 0) then
     return
@@ -117,13 +125,14 @@ local function global_execute_quickfix(global_cmd, current_project, extra_paths,
   vim.fn.setqflist(qflist)
 
   if (#qflist >= 2) then
-    vim.cmd("rightbelow cw")
-    vim.cmd("cc! 1", { mods = { slient = true, emsg_silent = true }})
+    if (M.options.Trouble == true and vim.fn.exists(":Trouble")) then
+      vim.cmd("Trouble qflist")
+    else
+      vim.cmd("rightbelow cw")
+      vim.cmd("cc! 1", { mods = { slient = true, emsg_silent = true }})
+    end
   end
   vim.cmd("redraw!")
-
-  --restore errorformat
-  vim.o.errorformat = errorformat
 end
 
 
@@ -268,7 +277,7 @@ local function telescope_on_selection(option, symbol)
   local global_cmd = ""
   if (option.definition == true) then
     if (option.current_project == true) then 
-      print("@@@@@@@ " .. option.definitions_found .. "@@@@@")
+      --print("@@@@@@@ " .. option.definitions_found .. "@@@@@")
       if (option.definitions_found == "definiton_current_project") then
         global_cmd = "global -axd " .. symbol
         global_execute_quickfix(global_cmd, true, false)
@@ -438,37 +447,39 @@ M.add_kernel_header = function()
   M.add_extra_path(kernel_header_path)
 end
 
-M.setup = function(config)
+M.setup = function(options)
+  M.options = vim.tbl_deep_extend("force", M.default_options, options or {})
+
   vim.api.nvim_create_user_command("GlobalUpdateTags", function(opt)
     M.update_gtags()
   end, { nargs = 0, desc = "Update tags, if tags not exist, will generate tags" })
 
   vim.api.nvim_create_user_command("GlobalListDefinitions", function(opt)
-    local option = {}
-    option.definition = true
-    option.current_project = true
-    telescope_global_picker(option)
+    local picker_option = {}
+    picker_option.definition = true
+    picker_option.current_project = true
+    telescope_global_picker(picker_option)
   end, { nargs = 0, desc = "List symbol definitions" })
 
   vim.api.nvim_create_user_command("GlobalListReferences", function(opt)
-    local option = {}
-    option.definition = false
-    option.current_project = true
-    telescope_global_picker(option)
+    local picker_option = {}
+    picker_option.definition = false
+    picker_option.current_project = true
+    telescope_global_picker(picker_option)
   end, { nargs = 0, desc = "List symbol references" })
 
   vim.api.nvim_create_user_command("GlobalListAllDefinitions", function(opt)
-    local option = {}
-    option.definition = true
-    option.current_project = false
-    telescope_global_picker(option)
+    local picker_option = {}
+    picker_option.definition = true
+    picker_option.current_project = false
+    telescope_global_picker(picker_option)
   end, { nargs = 0, desc = "List all symbol definitions" })
 
   vim.api.nvim_create_user_command("GlobalListAllReferences", function(opt)
-    local option = {}
-    option.definition = false
-    option.current_project = false
-    telescope_global_picker(option)
+    local picker_option = {}
+    picker_option.definition = false
+    picker_option.current_project = false
+    telescope_global_picker(picker_option)
   end, { nargs = 0, desc = "List all symbol references" })
 
   vim.api.nvim_create_user_command("GlobalFindCwordDefinitions", function(opt)

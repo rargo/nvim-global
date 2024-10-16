@@ -25,8 +25,16 @@ Install the plugin with your preferred package manager:
 
 ### Setup
 
+Use default quickfix window
+
 ```lua
 require("nvim-global").setup()
+```
+
+Use [Trouble](https://github.com/folke/trouble.nvim) as quickfix window, you need to install Trouble first
+
+```lua
+require("nvim-global").setup({ Trouble = true })
 ```
 
 ## 💻 Commands
