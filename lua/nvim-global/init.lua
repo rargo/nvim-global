@@ -17,6 +17,27 @@ local function run_command(cmd)
   return str
 end
 
+local function global_command(global_cmd)
+  local str = run_command(global_cmd)
+  local tbl = vim.split(str, "\n")
+
+  return tbl
+end
+
+local function global_command_extra_paths(tbl, global_cmd)
+  for _, path in ipairs(M.extra_paths) do
+    local str = run_command(global_cmd .. " -C " .. path)
+    if (str ~= "") then
+      local temp_tbl = vim.split(str, "\n")
+      for _,v in ipairs(temp_tbl) do
+        table.insert(tbl, v)
+      end
+    end
+  end
+
+  return tbl
+end
+
 local function check_executable()
   if (vim.fn.executable("global") == 0 or vim.fn.executable("gtags") == 0) then
     print("Error, global not found, please install it first!")
@@ -26,39 +47,66 @@ local function check_executable()
   return true
 end
 
-local function execute_global_cmd(global_cmd, extra_paths, stop_if_current_project_found)
-  vim.fn.setqflist({})
+local function format_select_qflist(qflist)
+  local format_tbl = {}
+  local preview_lines = 0
+  for _, qf in ipairs(qflist) do
+    for k, v in pairs(qf) do
+      print("k: " .. k .. " v: " .. v)
+    end
+  end
+
+  return format_tbl
+end
+
+-- stop_if_current_project_found only has to be pass when both current_project and extra_paths are true
+local function global_execute_quickfix(global_cmd, current_project, extra_paths, stop_if_current_project_found)
+  local qflist = {}
+  local errorformat = vim.o.errorformat
+  vim.o.errorformat="%.%#      %l %f %m"
   vim.cmd("cclose")
 
-  local errorformat = vim.o.errorformat
-  vim.o.errorformat="%.%# %l %f %m"
+  if (current_project == true) then
+    vim.fn.setqflist({})
+    local cmd = "system(\"" .. global_cmd .. "\")"
+    print("global_cmd:"  .. cmd)
+    vim.cmd.cexpr(cmd)
+    local tmp_qflist = vim.fn.getqflist()
+    for _, t in ipairs(tmp_qflist) do
+      table.insert(qflist, t)
+    end
 
-  local cmd = "system(\"" .. global_cmd .. "\")"
-  print("global_cmd:"  .. cmd)
-  vim.cmd.cexpr(cmd)
-  local qflist = vim.fn.getqflist()
+    --format_select_qflist(qflist)
 
-  if (#qflist == 0 or stop_if_current_project_found == false) then
-    if (extra_paths ~= false) then
-      for _, path in ipairs(M.extra_paths) do
-        local cmd = "system(\"" .. global_cmd .. " -C " .. path .. "\")"
-        print("global_cmd:"  .. cmd)
-        vim.cmd.cexpr(cmd)
-        local path_qflist = vim.fn.getqflist()
-        if (#path_qflist ~= 0) then
-          for _, t in ipairs(path_qflist) do
-            table.insert(qflist, t)
-            -- for k,v in pairs(t) do
-            --   print("k:" .. k .. " v:" .. v)
-            -- end
-          end
+    if (extra_paths == false) then
+      goto done
+    end
+
+    if (#qflist > 0 and stop_if_current_project_found == true) then
+      goto done
+    end
+  end
+
+
+  if (extra_paths == true) then
+    for _, path in ipairs(M.extra_paths) do
+      vim.fn.setqflist({})
+      local cmd = "system(\"" .. global_cmd .. " -C " .. path .. "\")"
+      print("global_cmd:"  .. cmd)
+      vim.cmd.cexpr(cmd)
+      vim.o.errorformat = errorformat
+      local tmp_qflist = vim.fn.getqflist()
+      if (#tmp_qflist ~= 0) then
+        for _, t in ipairs(tmp_qflist) do
+          table.insert(qflist, t)
         end
       end
     end
   end
 
+::done::
+
   if (#qflist == 0) then
-    vim.o.errorformat = errorformat
     return
   end
 
@@ -74,17 +122,18 @@ local function execute_global_cmd(global_cmd, extra_paths, stop_if_current_proje
   vim.o.errorformat = errorformat
 end
 
+
 local function find_definition(symbol, extra_paths, stop_if_current_project_found)
   local global_cmd = "global -axd " .. symbol
-  execute_global_cmd(global_cmd, extra_paths, stop_if_current_project_found)
+  global_execute_quickfix(global_cmd, extra_paths, stop_if_current_project_found)
 end
 
 local function find_reference(symbol, extra_paths, stop_if_current_project_found)
   local global_cmd = "global -s -axr " .. symbol
-  execute_global_cmd(global_cmd, extra_paths, stop_if_current_project_found)
+  global_execute_quickfix(global_cmd, extra_paths, stop_if_current_project_found)
 end
 
-local function telescope_symbols(definition, current_project)
+local function telescope_symbols(option)
   local symbols
   local str
   local cmd = ""
@@ -93,19 +142,20 @@ local function telescope_symbols(definition, current_project)
   str = run_command(cmd)
   symbols = vim.split(str, "\n")
 
-  if (current_project == true) then
-    if (definition == true and #M.extra_paths == 0) then
-      -- TODO if no extra tag files, we don't list other project symbols
-      return symbols
-    else
-      cmd = "global -s -c"
-      str = run_command(cmd)
-      local t = vim.split(str, "\n")
-      for _, v in ipairs(t) do
-        table.insert(symbols, v)
-      end
-      return symbols
+  if (option.definition == false or #M.extra_paths > 0) then
+    --列出当前工程的其他symbol:
+    --1. 查找references
+    --2. 查找definition但有其他tag被加入了
+    cmd = "global -s -c"
+    str = run_command(cmd)
+    local t = vim.split(str, "\n")
+    for _, v in ipairs(t) do
+      table.insert(symbols, v)
     end
+  end
+
+  if (option.current_project == true) then
+    return symbols
   end
 
   for _, path in ipairs(M.extra_paths) do
@@ -116,14 +166,12 @@ local function telescope_symbols(definition, current_project)
       table.insert(symbols, v)
     end
 
-    --if (definition == false) then
-      cmd = "global -s -c -C " .. path
-      str = run_command(cmd)
-      local t = vim.split(str, "\n")
-      for _, v in ipairs(t) do
-        table.insert(symbols, v)
-      end
-    --end
+    cmd = "global -s -c -C " .. path
+    str = run_command(cmd)
+    local t = vim.split(str, "\n")
+    for _, v in ipairs(t) do
+      table.insert(symbols, v)
+    end
   end
 
   return symbols
@@ -152,54 +200,98 @@ local function format_preview(t)
   return format_preview_tbl
 end
 
-local function telescope_preview(definition, current_project, symbol)
-  local preview_tbl = {}
+-- 查找函数定义
+-- 从当前工程查找定义，如果找到则返回
+-- 从其他的tag查找定义，如果找到则返回
+-- 从其他的tag查找引用，返回
+--
+-- 查找引用
+-- 从当前工程查找引用, 返回
+local function telescope_preview(option, symbol)
   local cmd = ""
-  if (definition) then
-    cmd = "global -xd "
+
+  if (option.definition == false) then
+    -- find references
+    cmd = "global -s -xr " .. symbol
+    local tbl = global_command(cmd)
+
+    if (option.current_project == false) then
+      cmd = "global -s -axr " .. symbol
+      global_command_extra_paths(tbl, cmd)
+    end
+
+    return format_preview(tbl)
   else
-    cmd = "global -s -xr "
-  end
-
-  local str = run_command(cmd .. symbol)
-  -- global -axd output quickfix format:
-  --       symbol linenumber file
-  local preview_tbl = vim.split(str, "\n")
-
-  if (definition == false and current_project == true) then
-    return format_preview(preview_tbl)
-  end
-
-  -- definitions will include extra tag files result
-  for _, path in ipairs(M.extra_paths) do
-    local str = run_command(cmd .. symbol .. " -C " .. path)
-    if (str ~= "") then
-      local tbl = vim.split(str, "\n")
-      for _,v in ipairs(tbl) do
-        table.insert(preview_tbl, v)
+    if (option.current_project == true) then
+      -- find current_project definitions
+      -- 先在当前的工程里查找定义
+      cmd = "global -xd " .. symbol
+      local tbl = global_command(cmd)
+      tbl = format_preview(tbl)
+      if (#tbl > 0) then
+        option.definitions_found = "definiton_current_project"
+        return tbl
       end
+
+      -- 在其他的tag文件中查找定义
+      cmd = "global -axd " .. symbol
+      global_command_extra_paths(tbl, cmd)
+      tbl = format_preview(tbl)
+      if (#tbl > 0) then
+        option.definitions_found = "definiton_extra_paths"
+        return tbl
+      end
+
+      -- 函数在头文件中的声明使用-xd不能查找出来，只能使用-s -xr找到，
+      -- 所以需要再加上这里的查找
+      cmd = "global -s -axr " .. symbol
+      global_command_extra_paths(tbl, cmd)
+      option.definitions_found = "reference_extra_paths"
+
+      return format_preview(tbl)
+    else
+      -- find all definitions
+      cmd = "global -axd " .. symbol
+      local tbl = global_command(cmd)
+      global_command_extra_paths(tbl, cmd)
+
+      return format_preview(tbl)
     end
   end
-
-  return format_preview(preview_tbl)
 end
 
-local function telescope_on_selection(definition, current_project, symbol)
+local function telescope_on_selection(option, symbol)
   local global_cmd = ""
-  if (definition) then
-    global_cmd = "global -axd " .. symbol
-    execute_global_cmd(global_cmd, true, true)
+  if (option.definition == true) then
+    if (option.current_project == true) then 
+      print("@@@@@@@ " .. option.definitions_found .. "@@@@@")
+      if (option.definitions_found == "definiton_current_project") then
+        global_cmd = "global -axd " .. symbol
+        global_execute_quickfix(global_cmd, true, false)
+      else
+        if (option.definitions_found == "definiton_extra_paths") then
+          global_cmd = "global -axd " .. symbol
+          global_execute_quickfix(global_cmd, false, true)
+        else
+          global_cmd = "global -s -axr " .. symbol
+          global_execute_quickfix(global_cmd, false, true)
+        end
+      end
+    else
+      global_cmd = "global -axd " .. symbol
+      global_execute_quickfix(global_cmd, true, true, false)
+    end
   else
     global_cmd = "global -s -axr " .. symbol
-    if (current_project == true) then
-      execute_global_cmd(global_cmd, false, true)
+    if (option.current_project == true) then
+      global_execute_quickfix(global_cmd, true, false)
     else
-      execute_global_cmd(global_cmd, true, true)
+      global_execute_quickfix(global_cmd, true, true, false)
     end
   end
 end
 
-local function telescope_global_picker(definition, current_project)
+local function telescope_global_picker(option)
   if (check_executable() == false) then
     return
   end
@@ -219,14 +311,14 @@ local function telescope_global_picker(definition, current_project)
   -- Build preivewer and set highlighting for each to "sshconfig"
   local previewer = previewers.new_buffer_previewer {
     define_preview = function(self, entry)
-      local lines = telescope_preview(definition, current_project, entry.value)
+      local lines = telescope_preview(option, entry.value)
       vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
       --require("telescope.previewers.utils").highlighter(self.state.bufnr, "sshconfig")
     end,
   }
 
   local _prompt_title = "find symbol **Definitions**"
-  if (definition == false) then
+  if (option.definition == false) then
     _prompt_title = "find symbol **References**"
   end
 
@@ -236,7 +328,7 @@ local function telescope_global_picker(definition, current_project)
       prompt_title = _prompt_title,
       previewer = previewer,
       finder = finders.new_table {
-        results = telescope_symbols(definition, current_project)
+        results = telescope_symbols(option)
       },
       sorter = sorters.get_generic_fuzzy_sorter(),
       attach_mappings = function(prompt_bufnr, _)
@@ -246,7 +338,7 @@ local function telescope_global_picker(definition, current_project)
           local selection = state.get_selected_entry()
           --print("selection is: " .. selection[1])
           -- find symbol definition
-          telescope_on_selection(definition, current_project, selection[1])
+          telescope_on_selection(option, selection[1])
         end)
         return true
       end,
@@ -336,19 +428,31 @@ M.setup = function(config)
   end, { nargs = 0, desc = "Update tags, if tags not exist, will generate tags" })
 
   vim.api.nvim_create_user_command("GlobalListDefinitions", function(opt)
-    telescope_global_picker(true, true)
+    local option = {}
+    option.definition = true
+    option.current_project = true
+    telescope_global_picker(option)
   end, { nargs = 0, desc = "List symbol definitions" })
 
   vim.api.nvim_create_user_command("GlobalListReferences", function(opt)
-    telescope_global_picker(false, true)
+    local option = {}
+    option.definition = false
+    option.current_project = true
+    telescope_global_picker(option)
   end, { nargs = 0, desc = "List symbol references" })
 
   vim.api.nvim_create_user_command("GlobalListAllDefinitions", function(opt)
-    telescope_global_picker(true, false)
+    local option = {}
+    option.definition = true
+    option.current_project = false
+    telescope_global_picker(option)
   end, { nargs = 0, desc = "List all symbol definitions" })
 
   vim.api.nvim_create_user_command("GlobalListAllReferences", function(opt)
-    telescope_global_picker(false, false)
+    local option = {}
+    option.definition = false
+    option.current_project = false
+    telescope_global_picker(option)
   end, { nargs = 0, desc = "List all symbol references" })
 
   vim.api.nvim_create_user_command("GlobalFindCwordDefinitions", function(opt)
