@@ -409,6 +409,7 @@ M.add_extra_path = function(path)
   end
 
   local absolute_path = vim.fn.expand(path)
+
   local tag_file = absolute_path .. "/GTAGS"
   if (vim.fn.filereadable(tag_file) == 0) then
     print("Error, GTAGS file not found in \"" .. path .. "\". Please generate it first")
@@ -423,7 +424,18 @@ M.add_extra_path = function(path)
   end
 
   table.insert(M.extra_paths, absolute_path)
-  print("\"" .. path .. "\" added")
+  print("nvim-global: tag in \"" .. path .. "\" added")
+end
+
+M.add_kernel_header = function()
+  local handle = io.popen("uname -r")
+  local kernel_version = handle:read("*a")
+  local kernel_header_path = "/usr/src/linux-headers-" .. kernel_version
+  kernel_header_path = string.gsub(kernel_header_path, "%s","")
+  kernel_header_path = string.gsub(kernel_header_path, "\n","")
+  handle:close()
+
+  M.add_extra_path(kernel_header_path)
 end
 
 M.setup = function(config)
@@ -474,6 +486,10 @@ M.setup = function(config)
   vim.api.nvim_create_user_command("GlobalAddPath", function(opt)
     M.add_extra_path(opt.args)
   end, { nargs = 1, desc = "Add extra tag file path", complete = "dir" })
+
+  vim.api.nvim_create_user_command("GlobalAddKernelHeader", function(opt)
+    M.add_kernel_header(opt.args)
+  end, { nargs = 0, desc = "Add kernel header files in /usr/src/linux-headers-`uname -r`"})
 end
 
 return M
