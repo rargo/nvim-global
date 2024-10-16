@@ -60,10 +60,14 @@ local function format_select_qflist(qflist)
 end
 
 -- stop_if_current_project_found only has to be pass when both current_project and extra_paths are true
+-- TODO, errorformat how to match:
+-- usleep_range      230 /home/ye/mf/v2/kmd_for_sim_test/src/moffett/src/model_test.c  usleep_range(9 * 1000, 11 * 1000);
 local function global_execute_quickfix(global_cmd, current_project, extra_paths, stop_if_current_project_found)
   local qflist = {}
   local errorformat = vim.o.errorformat
-  vim.o.errorformat="%.%#      %l %f %m"
+  -- NOTE at least two space between %.%# and %l
+  -- I don't know if someday will print one space
+  vim.o.errorformat="%.%#  %l %f %m"
   vim.cmd("cclose")
 
   if (current_project == true) then
@@ -143,9 +147,9 @@ local function telescope_symbols(option)
   symbols = vim.split(str, "\n")
 
   if (option.definition == false or #M.extra_paths > 0) then
-    --列出当前工程的其他symbol:
+    --下面的情况下列出当前工程的其他symbol:
     --1. 查找references
-    --2. 查找definition但有其他tag被加入了
+    --2. 查找definition但有其他tag被加入了,因为这种情况很可能是用户想从其他文件查找当前工程没有的定义
     cmd = "global -s -c"
     str = run_command(cmd)
     local t = vim.split(str, "\n")
