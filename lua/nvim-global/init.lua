@@ -448,6 +448,16 @@ local function telescope_global_picker(option)
     :find()
 end
 
+local function update_dir_gtags(dir)
+  if (check_executable() == false) then
+    return
+  end
+
+  print("generating new tags in dir " .. dir .. "...")
+  run_command("cd " .. dir .. ";gtags")
+  print("Done")
+end
+
 M.update_gtags = function()
   if (check_executable() == false) then
     return
@@ -472,19 +482,21 @@ M.show_projects = function()
     return
   end
 
-  local root = run_command("global --print root")
-  local dbpath = run_command("global --print dbpath")
+  local current_root = run_command("global --print root")
+  local current_dbpath = run_command("global --print dbpath")
   print("Current project:")
-  print("   " .. root)
+  print("   " .. current_root)
   --print("   dbpath: " .. dbpath)
 
+  print("\n")
+  print("Other projects:")
   if (#M.extra_paths > 0) then
-    print("\n")
-    print("Other projects:")
     for _, path in ipairs(M.extra_paths) do
       local root = run_command("global --print root -C " .. path)
       local dbpath = run_command("global --print dbpath -C " .. path)
-      print("   " .. path)
+      if (root ~= current_root) then
+        print("   " .. path)
+      end
       --print("   dbpath: " .. dbpath)
     end
   end
@@ -498,19 +510,7 @@ M.find_cword_references = function()
     local cword = vim.fn.expand("<cword>")
 end
 
-M.add_other_project = function(path)
-  if (check_executable() == false) then
-    return
-  end
-
-  local absolute_path = vim.fn.expand(path)
-
-  local tag_file = absolute_path .. "/GTAGS"
-  if (vim.fn.filereadable(tag_file) == 0) then
-    print("Error, GTAGS file not found in \"" .. path .. "\". Please generate it first")
-    return
-  end
-
+local function add_other_project_path(path)
   for _,v in ipairs(M.extra_paths) do
     if (v == absolute_path) then
       print("path: \"" .. path .. "\" already added")
@@ -520,6 +520,37 @@ M.add_other_project = function(path)
 
   table.insert(M.extra_paths, absolute_path)
   print("nvim-global: project \"" .. path .. "\" added")
+end
+
+M.add_other_project = function(path)
+  if (check_executable() == false) then
+    return
+  end
+
+  local absolute_path = vim.fn.expand(path)
+
+  local tag_file = absolute_path .. "/GTAGS"
+  if (vim.fn.filereadable(tag_file) == 0) then
+    vim.ui.select({ 'y', 'n' }, {
+      prompt = "Generate tag files in path " .. absolute_path .. "? (y/n)",
+      format_item = function(item)
+        return "" .. item
+      end,
+    }, function(choice)
+        if (choice == 'y') then
+          update_dir_gtags(absolute_path)
+          if (vim.fn.filereadable(tag_file) == 1) then
+            add_other_project_path(absolute_path)
+          else
+            print("Error, GTAGS file generate fail in path " .. absolute_path)
+          end
+        else
+          print("Error, GTAGS file not found in \"" .. path .. "\". Please generate it first")
+        end
+      end)
+  else
+    add_other_project_path(absolute_path)
+  end
 end
 
 M.add_kernel_header = function()
