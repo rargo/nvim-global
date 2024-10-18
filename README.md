@@ -59,7 +59,7 @@ If tag files not exist, will call gtags to generate tag files
 Use it to add other projects like header files, library source.
 it's useful for find symbols that defined in other projects.
 
-If tag files not exist for that project, you will be prompt if want to generate it in that <project directory> 
+If tag files not exist for that project, you will be prompt if want to generate it in that \<project directory\> 
 
 ### Add kernel headers
 
