@@ -6,12 +6,13 @@ Supports multiple tag files. Useful for finding symbols defined in other project
 
 To use nvim-global, you need to install the GNU global package first. In Ubuntu or Debian systems, use "sudo apt-get install global".
 
-Neovim has stopped supporting cscope. Despite treesitter and LSP, global still is useful in some scenarios, like kernel module develop.
+Neovim has stopped supporting cscope. Despite there are treesitter and LSP, global is still useful in some scenarios, like developing kernel drivers.
 
 ## ⚡️ Requirements
 
 - GNU global software package installed
 - Neovim has [Neovim telescope plugin](https://github.com/nvim-telescope/telescope.nvim) installed
+- Install [Trouble](https://github.com/folke/trouble.nvim) if you want to use it as quickfix window
 
 ## 📦 Installation
 
@@ -39,38 +40,26 @@ require("nvim-global").setup({ Trouble = true })
 
 ## 💻 Commands
 
-### Update tag files in current directory
+### Update tag files in current project
 
 ```
 :GlobalUpdateTags
 ```
 
-Update tags in current directory, if tags already generated, global will update it incrementally.
+Update tags in current project, if tags already generated, global will update it incrementally.
 If tag files not exist, will call gtags to generate tag files
 
 
-### Add extra tag files
+### Add other project
 
 ```
-:GlobalAddPath <dir>
+:GlobalAddProject <project directory>
 ```
 
-You can add more than one tag files, it's useful for find symbol definition that defined in other projects.
+Use it to add other projects like header files, library source.
+it's useful for find symbols that defined in other projects.
 
-For example, when you developing kernel drivers, you can add kernel header path:
-(below command is examples, the exact kernel header file path is base on your own system)
-
-First generate tag file in the kernel headers directory
-```
-cd /usr/src/linux-headers-6.8.0-45-generic
-sudo gtags
-```
-
-Then add it in Neovim
-```
-:GlobalAddPath /usr/src/linux-headers-6.8.0-40-generic
-```
-Now you can find function or macro definitions that defines in the kernel headers.
+If tag files not exist for that project, you will be prompt if want to generate it in that <project directory> 
 
 ### Add kernel headers
 
@@ -78,73 +67,76 @@ Now you can find function or macro definitions that defines in the kernel header
 :GlobalAddKernelHeaders
 ```
 
-If you have already generate tags file in the kernel header dir("/usr/src/linux-headers-\`uname -r\`), you can use this command to add the kernel header files directly
+If you have already generate tags file in the kernel header directory("/usr/src/linux-headers-\`uname -r\`), you can use this command to add the kernel header files directly.
+Note you need root privilege to generate tag files for the kernel header directory
 
-### List symbol definitions
 
-```
-:GlobalListDefinitions
-```
-
-A Telescope selector window will be displayed, select the symbol from the dialog,
-it will jump to the symbol definition file and location,
-if multiple definitions are found, a quick fix window will be displayed under the current buffer,
-you can select a specific definition in the quick fix window
-
-You can map list symbol definitions to some key, below use key \<F8\>
+### Show all projects
 
 ```
-vim.api.nvim_set_keymap('n', '<F8>', '<cmd>GlobalListDefinitions<CR>', {noremap = true, silent = true})
+:GlobalShowProjects
 ```
 
-### List symbol references
+It will show path information for all the projects
+
+### List symbols
 
 ```
-:GlobalListReferences
+Global <action>
 ```
 
-A Telescope selector window will be displayed, select the symbol from the dialog,
-it will jump to the symbol reference file and location,
-if multiple references are found, a quick fix window will be displayed under the current buffer,
-you can select a specific reference in the quick fix window
+action can be empty or the followings:
 
-You can map list symbol references to some key, below use key \<C-F8\>
+- current_project_definitions
+- current_project_references
+- other_project_definitions
+- other_project_references
+- all_project_references
+- all_project_definitions
+- current_project_definitions_smart
+
+If <action> is empty, a Telescope selector window will be displayed, you will be further asked which action to be taken.
+
+#### current_project_definitions
+
+Find symbol definitions in current project, if multiple definitions are found, a quick fix window will be displayed under the current buffer.
+
+#### current_project_references
+
+Find symbol references in current project, if multiple references are found, a quick fix window will be displayed under the current buffer.
+
+#### other_project_definitions
+
+Find symbol definitions in other project which add via `GlobalAddProject`, if multiple definitions are found, a quick fix window will be displayed under the current buffer.
+
+#### other_project_references
+
+Find symbol references in other project which add via `GlobalAddProject`, if multiple references are found, a quick fix window will be displayed under the current buffer.
+
+#### all_project_definitions
+
+Find symbol definitions in all projects(current project and other project which add via `GlobalAddProject`), if multiple definitions are found, a quick fix window will be displayed under the current buffer.
+
+#### all_project_references
+
+Find symbol references in all projects(current project and other project which add via `GlobalAddProject`), if multiple references are found, a quick fix window will be displayed under the current buffer.
+
+#### current_project_definitions_smart
+
+This finds definitions in the follow step until one of them successfully find symbols
+
+- find symbol definitions in current projects
+- find symbol definitions in other projects
+- find symbol references in other projects
+
+This behavior is because global doesn't treate function declaration as symbols definition
+
+## Keymaping 🛠️
+
+Default has no keymappings, you can map commands to some key, below use key "F8" and "Ctrl-F8"
 
 ```
-vim.api.nvim_set_keymap('n', '<C-F8>', '<cmd>GlobalListReferences<CR>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', '<F8>', '<cmd>Global current_project_definitions_smart<CR>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', '<C-F8>', '<cmd>Global<CR>', {noremap = true, silent = true})
 ```
-
-### List all symbol definitions
-
-```
-:GlobalListAllDefinitions
-```
-
-This command works just like "GlobalListDefinitions", the only difference is:  
-it searches for symbol definitions not only in the current project, but also in all tag files added via "GlobalAddPath" and "GlobalAddKernelHeader"
-
-### List all symbol references
-
-```
-:GlobalListAllReferences
-```
-
-This command works just like "GlobalListReferences", the only difference is:  
-it searches for symbol references not only in the current project, but also in all tag files added via "GlobalAddPath" and "GlobalAddKernelHeader"
-
-### Find cursor word definitions
-
-```
-:GlobalFindCwordDefinitions
-```
-
-Finds the definition of the symbol under the cursor, if multiple definitions found, a quickfix window will be shown
-
-### Find cursor word references
-
-```
-:GlobalFindCwordReferences
-```
-
-Finds the references of the symbol under the cursor, if multiple references found, a quickfix window will be shown
 

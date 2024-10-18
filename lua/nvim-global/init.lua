@@ -488,9 +488,9 @@ M.show_projects = function()
   print("   " .. current_root)
   --print("   dbpath: " .. dbpath)
 
-  print("\n")
-  print("Other projects:")
   if (#M.extra_paths > 0) then
+    print("\n")
+    print("Other projects:")
     for _, path in ipairs(M.extra_paths) do
       local root = run_command("global --print root -C " .. path)
       local dbpath = run_command("global --print dbpath -C " .. path)
@@ -527,7 +527,16 @@ M.add_other_project = function(path)
     return
   end
 
+  local current_root = run_command("global --print root")
+  current_root = string.gsub(current_root, "\n", "")
+  --print("@" .. current_root .. "@")
+
   local absolute_path = vim.fn.expand(path)
+
+  if (current_root ~= "" and absolute_path == current_root) then
+    print("project path " .. absolute_path .. " is current project")
+    return
+  end
 
   local tag_file = absolute_path .. "/GTAGS"
   if (vim.fn.filereadable(tag_file) == 0) then
