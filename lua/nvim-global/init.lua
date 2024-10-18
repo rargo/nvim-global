@@ -512,13 +512,13 @@ end
 
 local function add_other_project_path(path)
   for _,v in ipairs(M.extra_paths) do
-    if (v == absolute_path) then
+    if (v == path) then
       print("path: \"" .. path .. "\" already added")
       return
     end
   end
 
-  table.insert(M.extra_paths, absolute_path)
+  table.insert(M.extra_paths, path)
   print("nvim-global: project \"" .. path .. "\" added")
 end
 
