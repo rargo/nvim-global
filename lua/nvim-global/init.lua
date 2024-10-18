@@ -39,12 +39,34 @@ local commands_tbl = {
       },
     },
 
+  current_project_references = 
+    {
+      desc = "find references in current project",
+      opt = {
+        picker_prompt = "find **References** in **Current** project",
+        definitions = false,
+        current_project = true,
+        other_project = false,
+      },
+    },
+
   other_project_definitions = 
     {
       desc = "find definitions in other project",
       opt = {
         picker_prompt = "find **Definitions** in **Other** projects",
         definitions = true,
+        current_project = false,
+        other_project = true,
+      },
+    },
+
+  other_project_references = 
+    {
+      desc = "find references in other project",
+      opt = {
+        picker_prompt = "find **References** in **Other** projects",
+        definitions = false,
         current_project = false,
         other_project = true,
       },
@@ -57,28 +79,6 @@ local commands_tbl = {
         picker_prompt = "find **Definitions** in **All** projects",
         definitions = true,
         current_project = true,
-        other_project = true,
-      },
-    },
-
-  current_project_references = 
-    {
-      desc = "find references in current project",
-      opt = {
-        picker_prompt = "find **References** in **Current** project",
-        definitions = false,
-        current_project = true,
-        other_project = false,
-      },
-    },
-
-  other_project_references = 
-    {
-      desc = "find references in other project",
-      opt = {
-        picker_prompt = "find **References** in **Other** projects",
-        definitions = false,
-        current_project = false,
         other_project = true,
       },
     },
@@ -159,7 +159,7 @@ end
 
 local function global_qflist_current_project(qflist, global_cmd)
   local errorformat = vim.o.errorformat
-  vim.o.errorformat="%.%#  %l %f %m"
+  vim.o.errorformat="%f:%l:%m"
 
   vim.fn.setqflist({})
   vim.cmd("cclose")
@@ -179,7 +179,7 @@ end
 
 local function global_qflist_other_project(qflist, global_cmd)
   local errorformat = vim.o.errorformat
-  vim.o.errorformat="%.%#  %l %f %m"
+  vim.o.errorformat="%f:%l:%m"
 
   vim.cmd("cclose")
 
@@ -188,7 +188,6 @@ local function global_qflist_other_project(qflist, global_cmd)
     local cmd = "system(\"" .. global_cmd .. " -C " .. path .. "\")"
     print("global_cmd:"  .. cmd)
     vim.cmd.cexpr(cmd)
-    vim.o.errorformat = errorformat
     local tmp_qflist = vim.fn.getqflist()
     if (#tmp_qflist ~= 0) then
       for _, t in ipairs(tmp_qflist) do
@@ -256,13 +255,11 @@ local function format_preview(t)
   local format_preview_tbl = {}
   local preview_lines = 0
   for _, line in ipairs(t) do
-    local line_tbl = vim.split(line, "%s+")
-    if (#line_tbl >= 3) then
+    local line_tbl = vim.split(line, ":")
+    if (#line_tbl == 3) then
       -- line_tbl[3]: file location
-      table.insert(format_preview_tbl, line_tbl[3] .. ":")
-      local source_code = table.concat(line_tbl, " ", 4)
-      source_code = "    " .. source_code
-      table.insert(format_preview_tbl, source_code)
+      table.insert(format_preview_tbl, line_tbl[1] .. " " .. line_tbl[2] .. ":")
+      table.insert(format_preview_tbl, "    " .. line_tbl[3])
       --print("table len:" .. #line_parts .. " " .. new_line)
       preview_lines = preview_lines + 1
       -- TODO confirm max preview_lines
@@ -282,12 +279,12 @@ local function telescope_global_preview(option, symbol)
   if (option.definitions == false) then
     -- find references
     if (option.current_project == true) then
-      cmd = "global -s -xr " .. symbol
+      cmd = "global --result grep -s -xr " .. symbol
       global_command_current_project(tbl, cmd)
     end
 
     if (option.other_project == true) then
-      cmd = "global -s -axr " .. symbol
+      cmd = "global --result grep -s -axr " .. symbol
       global_command_other_project(tbl, cmd)
     end
 
@@ -297,7 +294,7 @@ local function telescope_global_preview(option, symbol)
     if (option.definition_smart == true) then
       -- find current_project definitions
       -- 先在当前的工程里查找定义
-      cmd = "global -xd " .. symbol
+      cmd = "global --result grep -xd " .. symbol
       global_command_current_project(tbl, cmd)
       tbl = format_preview(tbl)
       if (#tbl > 0) then
@@ -305,7 +302,7 @@ local function telescope_global_preview(option, symbol)
       end
 
       -- 在其他的tag文件中查找定义
-      cmd = "global -axd " .. symbol
+      cmd = "global --result grep -axd " .. symbol
       global_command_other_project(tbl, cmd)
       tbl = format_preview(tbl)
       if (#tbl > 0) then
@@ -314,19 +311,19 @@ local function telescope_global_preview(option, symbol)
 
       -- 函数在头文件中的声明使用-xd不能查找出来，只能使用-s -xr找到，
       -- 所以需要再加上这里的查找
-      cmd = "global -s -axr " .. symbol
+      cmd = "global --result grep -s -axr " .. symbol
       global_command_other_project(tbl, cmd)
       option.definitions_found = "reference_extra_paths"
 
       return format_preview(tbl)
     else
       if (option.current_project == true) then
-        cmd = "global -axd " .. symbol
+        cmd = "global --result grep -axd " .. symbol
         global_command_current_project(tbl, cmd)
       end
 
       if (option.other_project == true) then
-        cmd = "global -axd " .. symbol
+        cmd = "global --result grep -axd " .. symbol
         global_command_other_project(tbl, cmd)
       end
       return format_preview(tbl)
@@ -340,12 +337,12 @@ local function telescope_global_on_selection(option, symbol)
   if (option.definitions == false) then
     -- find references
     if (option.current_project == true) then
-      cmd = "global -s -xr " .. symbol
+      cmd = "global --result grep -s -xr " .. symbol
       global_qflist_current_project(qflist, cmd)
     end
 
     if (option.other_project == true) then
-      cmd = "global -s -axr " .. symbol
+      cmd = "global --result grep -s -axr " .. symbol
       global_qflist_other_project(qflist, cmd)
     end
   else
@@ -353,14 +350,14 @@ local function telescope_global_on_selection(option, symbol)
     if (option.definition_smart == true) then
       -- find current_project definitions
       -- 先在当前的工程里查找定义
-      cmd = "global -xd " .. symbol
+      cmd = "global --result grep -xd " .. symbol
       global_qflist_current_project(qflist, cmd)
       if (#qflist > 0) then
         goto done
       end
 
       -- 在其他的tag文件中查找定义
-      cmd = "global -axd " .. symbol
+      cmd = "global --result grep -axd " .. symbol
       global_qflist_other_project(qflist, cmd)
       if (#qflist > 0) then
         goto done
@@ -368,16 +365,16 @@ local function telescope_global_on_selection(option, symbol)
 
       -- 函数在头文件中的声明使用-xd不能查找出来，只能使用-s -xr找到，
       -- 所以需要再加上这里的查找
-      cmd = "global -s -axr " .. symbol
+      cmd = "global --result grep -s -axr " .. symbol
       global_qflist_other_project(qflist, cmd)
     else
       if (option.current_project == true) then
-        cmd = "global -axd " .. symbol
+        cmd = "global --result grep -axd " .. symbol
         global_qflist_current_project(qflist, cmd)
       end
 
       if (option.other_project == true) then
-        cmd = "global -axd " .. symbol
+        cmd = "global --result grep -axd " .. symbol
         global_qflist_other_project(qflist, cmd)
       end
     end
