@@ -287,7 +287,6 @@ local function telescope_global_preview(option, symbol)
   local tbl = {}
 
   if (symbol == SymbolNotFoundError) then
-    table.insert(tbl, SymbolNotFoundError)
     return tbl
   end
 
