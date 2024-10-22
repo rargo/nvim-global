@@ -85,7 +85,7 @@ It will show path information for all the projects
 Global <action>
 ```
 
-action can be empty or one of the following:
+action can be empty or the followings:
 
 - current_project_definitions
 - current_project_references

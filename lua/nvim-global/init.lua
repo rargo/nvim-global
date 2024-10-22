@@ -54,7 +54,7 @@ local commands_tbl = {
 
   other_project_definitions = 
     {
-      desc = "find definitions in other project",
+      desc = "find definitions in other projects",
       opt = {
         picker_prompt = "find **Definitions** in **Other** projects",
         definitions = true,
@@ -65,7 +65,7 @@ local commands_tbl = {
 
   other_project_references = 
     {
-      desc = "find references in other project",
+      desc = "find references in other projects",
       opt = {
         picker_prompt = "find **References** in **Other** projects",
         definitions = false,
@@ -76,7 +76,7 @@ local commands_tbl = {
 
   all_project_definitions = 
     {
-      desc = "find definitions in all project",
+      desc = "find definitions in all projects",
       opt = {
         picker_prompt = "find **Definitions** in **All** projects",
         definitions = true,
@@ -87,7 +87,7 @@ local commands_tbl = {
 
   all_project_references = 
     {
-      desc = "find references in all project",
+      desc = "find references in all projects",
       opt = {
         picker_prompt = "find **References** in **All** projects",
         definitions = false,
@@ -157,18 +157,13 @@ local function check_executable()
   return true
 end
 
-local function format_select_qflist(qflist)
-  local format_tbl = {}
-  local preview_lines = 0
+local function print_qflist(qflist)
   for _, qf in ipairs(qflist) do
     for k, v in pairs(qf) do
       print("k: " .. k .. " v: " .. v)
     end
   end
-
-  return format_tbl
 end
-
 
 local function global_qflist_current_project(qflist, global_cmd)
   local errorformat = vim.o.errorformat
@@ -242,7 +237,8 @@ local function telescope_global_symbols(option)
       cmd = "global -c "
       global_command_current_project(tbl, cmd)
 
-      -- 如果有其他工程，则也列出本工程的其他符号，因为很可能在其他工程中找到
+      -- it some other project added, list all symbols of current_project
+      -- because other project is very likely to be library or header files
       if (#M.extra_paths > 0) then
         cmd = "global -s -c "
         global_command_current_project(tbl, cmd)
@@ -272,10 +268,9 @@ local function format_preview(t)
   for _, line in ipairs(t) do
     local line_tbl = vim.split(line, ":")
     if (#line_tbl == 3) then
-      -- line_tbl[3]: file location
       table.insert(format_preview_tbl, line_tbl[1] .. " " .. line_tbl[2] .. ":")
-      table.insert(format_preview_tbl, "    " .. line_tbl[3])
-      --print("table len:" .. #line_parts .. " " .. new_line)
+      local text = string.gsub(line_tbl[3], "^%s+", "")
+      table.insert(format_preview_tbl, "    " .. text)
       preview_lines = preview_lines + 1
       -- TODO confirm max preview_lines
       if (preview_lines >= 100) then
@@ -312,8 +307,7 @@ local function telescope_global_preview(option, symbol)
   else
     -- find definitions
     if (option.definition_smart == true) then
-      -- find current_project definitions
-      -- 先在当前的工程里查找定义
+      -- 1. try to find definitions in current project
       cmd = "global --result grep -xd " .. symbol
       global_command_current_project(tbl, cmd)
       tbl = format_preview(tbl)
@@ -321,7 +315,7 @@ local function telescope_global_preview(option, symbol)
         return tbl
       end
 
-      -- 在其他的tag文件中查找定义
+      -- 2. try to find definitions in other projects
       cmd = "global --result grep -axd " .. symbol
       global_command_other_project(tbl, cmd)
       tbl = format_preview(tbl)
@@ -329,8 +323,8 @@ local function telescope_global_preview(option, symbol)
         return tbl
       end
 
-      -- 函数在头文件中的声明使用-xd不能查找出来，只能使用-s -xr找到，
-      -- 所以需要再加上这里的查找
+      -- 3. try to find references in other projects
+      -- this is because global doesn't treat function declaration as definition
       cmd = "global --result grep -s -axr " .. symbol
       global_command_other_project(tbl, cmd)
       option.definitions_found = "reference_extra_paths"
@@ -356,7 +350,7 @@ local function telescope_global_on_selection(option, symbol)
   local qflist = {}
 
   if (symbol == SymbolNotFoundError) then
-    return
+    return 0
   end
 
   if (option.definitions == false) then
@@ -373,23 +367,22 @@ local function telescope_global_on_selection(option, symbol)
   else
     -- find definitions
     if (option.definition_smart == true) then
-      -- find current_project definitions
-      -- 先在当前的工程里查找定义
+      -- 1. find current_project definitions
       cmd = "global --result grep -xd " .. symbol
       global_qflist_current_project(qflist, cmd)
       if (#qflist > 0) then
         goto done
       end
 
-      -- 在其他的tag文件中查找定义
+      -- 2. try to find definitions in other projects
       cmd = "global --result grep -axd " .. symbol
       global_qflist_other_project(qflist, cmd)
       if (#qflist > 0) then
         goto done
       end
 
-      -- 函数在头文件中的声明使用-xd不能查找出来，只能使用-s -xr找到，
-      -- 所以需要再加上这里的查找
+      -- 3. try to find references in other projects
+      -- this is because global doesn't treat function declaration as definition
       cmd = "global --result grep -s -axr " .. symbol
       global_qflist_other_project(qflist, cmd)
     else
@@ -436,19 +429,13 @@ local function telescope_global_picker(option)
     error "Cannot find telescope!"
   end
 
-  -- local connections = require "remote-sshfs.connections"
-  -- local hosts = connections.list_hosts()
-
-  -- Build preivewer and set highlighting for each to "sshconfig"
   local previewer = previewers.new_buffer_previewer {
     define_preview = function(self, entry)
       local lines = telescope_global_preview(option, entry.value)
       vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
-      --require("telescope.previewers.utils").highlighter(self.state.bufnr, "sshconfig")
     end,
   }
 
-  -- Build picker to run connect function when a host is selected
   pickers
     .new(_, {
       prompt_title = option.picker_prompt,
@@ -462,8 +449,6 @@ local function telescope_global_picker(option)
           actions.close(prompt_bufnr)
 
           local selection = state.get_selected_entry()
-          --print("selection is: " .. selection[1])
-          -- find symbol definition
           telescope_global_on_selection(option, selection[1])
         end)
         return true
@@ -488,8 +473,8 @@ M.update_gtags = function()
   end
 
   local str = run_command("global -p")
-  -- if no gtag files found, global -p will output error message to stderr, io.popen cannot capture it 
-  -- so the str will be empty string
+  -- if no gtag files found, global -p will output error message to stderr, 
+  -- io.popen cannot capture it, so the str will be empty string
   if (str == "") then 
     print("generating new tags ...")
     run_command("gtags")
@@ -520,8 +505,8 @@ M.show_projects = function()
       local dbpath = run_command("global --print dbpath -C " .. path)
       if (root ~= current_root) then
         print("   " .. path)
+        --print("selection is: " .. selection[1])
       end
-      --print("   dbpath: " .. dbpath)
     end
   end
 end
@@ -555,7 +540,6 @@ M.add_other_project = function(path)
 
   local current_root = run_command("global --print root")
   current_root = string.gsub(current_root, "\n", "")
-  --print("@" .. current_root .. "@")
 
   local absolute_path = vim.fn.expand(path)
 
@@ -656,21 +640,15 @@ local function telescope_commands_picker(input)
     error "Cannot find telescope!"
   end
 
-  -- local connections = require "remote-sshfs.connections"
-  -- local hosts = connections.list_hosts()
-
-  -- Build preivewer and set highlighting for each to "sshconfig"
   local previewer = previewers.new_buffer_previewer {
     define_preview = function(self, entry)
       local lines = telescope_commands_preview(entry.value)
       vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
-      --require("telescope.previewers.utils").highlighter(self.state.bufnr, "sshconfig")
     end,
   }
 
-  local _prompt_title = "select which ways"
+  local _prompt_title = "select one action"
 
-  -- Build picker to run connect function when a host is selected
   pickers
     .new(_, {
       prompt_title = _prompt_title,
@@ -684,8 +662,6 @@ local function telescope_commands_picker(input)
           actions.close(prompt_bufnr)
 
           local selection = state.get_selected_entry()
-          --print("selection is: " .. selection[1])
-          -- find symbol definition
           telescope_commands_on_selection(selection[1])
         end)
         return true
