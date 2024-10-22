@@ -5,6 +5,8 @@ local previewers = require "telescope.previewers"
 -- TODO
 -- 1. global tags as completion resource
 
+local SymbolNotFoundError = "Error, no symbol found, please check if tag files had been generated"
+
 local M = {}
 
 M.extra_paths = {}
@@ -104,6 +106,11 @@ local function run_command(cmd)
 end
 
 local function global_command_current_project(tbl, global_cmd)
+  local current_root = run_command("global --print root")
+  if (current_root == "") then
+    return
+  end
+
   local str = run_command(global_cmd)
   local temp_tbl = vim.split(str, "\n")
   for _,v in ipairs(temp_tbl) do
@@ -119,6 +126,11 @@ end
 
 local function global_command_other_project(tbl, global_cmd)
   for _, path in ipairs(M.extra_paths) do
+    local root = run_command("global --print root -C " .. path)
+    if (root == "") then
+      goto loop_end
+    end
+
     local str = run_command(global_cmd .. " -C " .. path)
     if (str ~= "") then
       local temp_tbl = vim.split(str, "\n")
@@ -130,6 +142,7 @@ local function global_command_other_project(tbl, global_cmd)
         end
       end
     end
+::loop_end::
   end
 
   return tbl
@@ -165,7 +178,7 @@ local function global_qflist_current_project(qflist, global_cmd)
   vim.cmd("cclose")
 
   local cmd = "system(\"" .. global_cmd .. "\")"
-  print("global_cmd:"  .. cmd)
+  --print("global_cmd:"  .. cmd)
   vim.cmd.cexpr(cmd)
   local tmp_qflist = vim.fn.getqflist()
   for _, t in ipairs(tmp_qflist) do
@@ -186,7 +199,7 @@ local function global_qflist_other_project(qflist, global_cmd)
   for _, path in ipairs(M.extra_paths) do
     vim.fn.setqflist({})
     local cmd = "system(\"" .. global_cmd .. " -C " .. path .. "\")"
-    print("global_cmd:"  .. cmd)
+    --print("global_cmd:"  .. cmd)
     vim.cmd.cexpr(cmd)
     local tmp_qflist = vim.fn.getqflist()
     if (#tmp_qflist ~= 0) then
@@ -223,7 +236,6 @@ local function telescope_global_symbols(option)
       global_command_other_project(tbl, cmd)
     end
 
-    return tbl
   else
     -- find definitions
     if (option.definition_smart == true) then
@@ -235,7 +247,6 @@ local function telescope_global_symbols(option)
         cmd = "global -s -c "
         global_command_current_project(tbl, cmd)
       end
-      return tbl
     else
       if (option.current_project == true) then
         cmd = "global -c "
@@ -246,9 +257,13 @@ local function telescope_global_symbols(option)
         cmd = "global -c "
         global_command_other_project(tbl, cmd)
       end
-      return tbl
     end
   end
+
+  if (#tbl == 0) then
+    table.insert(tbl, SymbolNotFoundError)
+  end
+  return tbl
 end
 
 local function format_preview(t)
@@ -275,6 +290,11 @@ end
 local function telescope_global_preview(option, symbol)
   local cmd = ""
   local tbl = {}
+
+  if (symbol == SymbolNotFoundError) then
+    table.insert(tbl, SymbolNotFoundError)
+    return tbl
+  end
 
   if (option.definitions == false) then
     -- find references
@@ -334,6 +354,11 @@ end
 local function telescope_global_on_selection(option, symbol)
   local global_cmd = ""
   local qflist = {}
+
+  if (symbol == SymbolNotFoundError) then
+    return
+  end
+
   if (option.definitions == false) then
     -- find references
     if (option.current_project == true) then
@@ -393,6 +418,8 @@ local function telescope_global_on_selection(option, symbol)
     end
   end
   vim.cmd("redraw!")
+
+  return #qflist
 end
 
 local function telescope_global_picker(option)
@@ -499,12 +526,14 @@ M.show_projects = function()
   end
 end
 
-M.find_cword_definitions = function()
-    local cword = vim.fn.expand("<cword>")
+M.find_definitions = function(word)
+  local opt = commands_tbl.current_project_definitions_smart.opt
+  return telescope_global_on_selection(opt, word)
 end
 
-M.find_cword_references = function()
-    local cword = vim.fn.expand("<cword>")
+M.find_references = function(word)
+  local opt = commands_tbl.current_project_references.opt
+  return telescope_global_on_selection(opt, word)
 end
 
 local function add_other_project_path(path)
@@ -684,14 +713,6 @@ M.setup = function(options)
     telescope_commands_picker(input)
   end, { nargs = '?', desc = "Global" })
 
-  -- vim.api.nvim_create_user_command("GlobalFindCwordDefinitions", function(opt)
-  --   M.find_cword_definitions()
-  -- end, { nargs = 0, desc = "Find cursor word definitions" })
-  --
-  -- vim.api.nvim_create_user_command("GlobalFindCwordReferences", function(opt)
-  --   M.find_cword_references()
-  -- end, { nargs = 0, desc = "Find cursor word references" })
-  --
   vim.api.nvim_create_user_command("GlobalShowProjects", function(opt)
     M.show_projects(opt.args)
   end, { nargs = 0, desc = "Show tag info" })
