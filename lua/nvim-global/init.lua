@@ -105,10 +105,23 @@ local function run_command(cmd)
   return str
 end
 
+local function tag_file_exist(path)
+  local root = ""
+  if (path == nil) then
+    root = run_command("global --print root 2>/dev/null")
+  else
+    root = run_command("global --print root -C " .. path .. " 2>/dev/null")
+  end
+  if (root == "") then
+    return false
+  else
+    return true
+  end
+end
+
 local function global_command_current_project(tbl, global_cmd)
-  local current_root = run_command("global --print root")
-  if (current_root == "") then
-    return
+  if (tag_file_exist() == false) then
+    return tbl
   end
 
   local str = run_command(global_cmd)
@@ -126,8 +139,7 @@ end
 
 local function global_command_other_project(tbl, global_cmd)
   for _, path in ipairs(M.extra_paths) do
-    local root = run_command("global --print root -C " .. path)
-    if (root == "") then
+    if (tag_file_exist(path) == false) then
       goto loop_end
     end
 
@@ -166,6 +178,10 @@ local function print_qflist(qflist)
 end
 
 local function global_qflist_current_project(qflist, global_cmd)
+  if (tag_file_exist() == false) then
+    return qflist
+  end
+
   local errorformat = vim.o.errorformat
   vim.o.errorformat="%f:%l:%m"
 
@@ -192,6 +208,10 @@ local function global_qflist_other_project(qflist, global_cmd)
   vim.cmd("cclose")
 
   for _, path in ipairs(M.extra_paths) do
+    if (tag_file_exist(path) == false) then
+      goto loop_end
+    end
+
     vim.fn.setqflist({})
     local cmd = "system(\"" .. global_cmd .. " -C " .. path .. "\")"
     --print("global_cmd:"  .. cmd)
@@ -202,6 +222,7 @@ local function global_qflist_other_project(qflist, global_cmd)
         table.insert(qflist, t)
       end
     end
+::loop_end::
   end
 
   vim.o.errorformat = errorformat
