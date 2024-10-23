@@ -100,37 +100,37 @@ If <action> is empty, a Telescope selector window will be displayed, you will be
 
 #### current_project_definitions
 
-Find symbol definitions in current project, if multiple definitions are found, a quick fix window will be displayed under the current buffer.
+Find symbol definitions in current project, if multiple definitions are found, a quick fix window will be displayed under the current buffer.  
 In the telescope preview window, Only current project's definition symbols will be shown.
 
 #### current_project_references
 
-Find symbol references in current project, if multiple references are found, a quick fix window will be displayed under the current buffer.
+Find symbol references in current project, if multiple references are found, a quick fix window will be displayed under the current buffer.  
 In the telescope preview window, current project's all symbols will be shown.
 
 #### other_project_definitions
 
-Find symbol definitions in other project which add via `GlobalAddProject`, if multiple definitions are found, a quick fix window will be displayed under the current buffer.
+Find symbol definitions in other project which add via `GlobalAddProject`, if multiple definitions are found, a quick fix window will be displayed under the current buffer.  
 In the telescope preview window, Only other project's definition symbols will be shown.
 
 #### other_project_references
 
-Find symbol references in other project which add via `GlobalAddProject`, if multiple references are found, a quick fix window will be displayed under the current buffer.
+Find symbol references in other project which add via `GlobalAddProject`, if multiple references are found, a quick fix window will be displayed under the current buffer.  
 In the telescope preview window, other project's all symbols will be shown.
 
 #### all_project_definitions
 
-Find symbol definitions in all projects(current project and other project which add via `GlobalAddProject`), if multiple definitions are found, a quick fix window will be displayed under the current buffer.
+Find symbol definitions in all projects(current project and other project which add via `GlobalAddProject`), if multiple definitions are found, a quick fix window will be displayed under the current buffer.  
 In the telescope preview window, all projects definition symbols will be shown.
 
 #### all_project_references
 
-Find symbol references in all projects(current project and other project which add via `GlobalAddProject`), if multiple references are found, a quick fix window will be displayed under the current buffer.
+Find symbol references in all projects(current project and other project which add via `GlobalAddProject`), if multiple references are found, a quick fix window will be displayed under the current buffer.  
 In the telescope preview window, all projects all symbols will be shown.
 
 #### current_project_definitions_smart
 
-In the telescope preview window, current project's all symbols will be shown,
+In the telescope preview window, current project's all symbols will be shown,  
 This finds definitions in the follow step until one of them successfully find symbols
 
 - find symbol definitions in current projects
@@ -139,7 +139,7 @@ This finds definitions in the follow step until one of them successfully find sy
 
 #### other_project_definitions_smart
 
-In the telescope preview window, other project's all symbols will be shown,
+In the telescope preview window, other project's all symbols will be shown,  
 This finds definitions in the follow step until one of them successfully find symbols
 
 - find symbol definitions in other projects
