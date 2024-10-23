@@ -94,49 +94,66 @@ action can be empty or the followings:
 - all_project_references
 - all_project_definitions
 - current_project_definitions_smart
+- other_project_definitions_smart
 
 If <action> is empty, a Telescope selector window will be displayed, you will be further asked which action to be taken.
 
 #### current_project_definitions
 
 Find symbol definitions in current project, if multiple definitions are found, a quick fix window will be displayed under the current buffer.
+In the telescope preview window, Only current project's definition symbols will be shown.
 
 #### current_project_references
 
 Find symbol references in current project, if multiple references are found, a quick fix window will be displayed under the current buffer.
+In the telescope preview window, current project's all symbols will be shown.
 
 #### other_project_definitions
 
 Find symbol definitions in other project which add via `GlobalAddProject`, if multiple definitions are found, a quick fix window will be displayed under the current buffer.
+In the telescope preview window, Only other project's definition symbols will be shown.
 
 #### other_project_references
 
 Find symbol references in other project which add via `GlobalAddProject`, if multiple references are found, a quick fix window will be displayed under the current buffer.
+In the telescope preview window, other project's all symbols will be shown.
 
 #### all_project_definitions
 
 Find symbol definitions in all projects(current project and other project which add via `GlobalAddProject`), if multiple definitions are found, a quick fix window will be displayed under the current buffer.
+In the telescope preview window, all projects definition symbols will be shown.
 
 #### all_project_references
 
 Find symbol references in all projects(current project and other project which add via `GlobalAddProject`), if multiple references are found, a quick fix window will be displayed under the current buffer.
+In the telescope preview window, all projects all symbols will be shown.
 
 #### current_project_definitions_smart
 
+In the telescope preview window, current project's all symbols will be shown,
 This finds definitions in the follow step until one of them successfully find symbols
 
 - find symbol definitions in current projects
 - find symbol definitions in other projects
 - find symbol references in other projects
 
-This behavior is because global doesn't treate function declaration as symbols definition
+#### other_project_definitions_smart
 
-## Keymaping 🛠️
+In the telescope preview window, other project's all symbols will be shown,
+This finds definitions in the follow step until one of them successfully find symbols
+
+- find symbol definitions in other projects
+- find symbol references in other projects
+
+
+🛠️ ## Keymaping 
 
 Default has no keymappings, you can map commands to some key, below use key "F8" and "Ctrl-F8"
 
 ```
 vim.api.nvim_set_keymap('n', '<F8>', '<cmd>Global current_project_definitions_smart<CR>', {noremap = true, silent = true})
-vim.api.nvim_set_keymap('n', '<C-F8>', '<cmd>Global<CR>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', '<C-F8>', '<cmd>Global other_project_definitions_smart<CR>', {noremap = true, silent = true})
+-- for some laptop computer C-F8 keymap
+vim.api.nvim_set_keymap('n', '<C-F32>', '<cmd>Global other_project_definitions_smart<CR>', {noremap = true, silent = true})
 ```
 

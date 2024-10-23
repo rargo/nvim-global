@@ -52,6 +52,18 @@ local commands_tbl = {
       },
     },
 
+  other_project_definitions_smart = 
+    {
+      desc = "Smartly find definitions in other projects",
+      opt = {
+        picker_prompt = "Smartly find **Definitions** in **Other** projects",
+        definitions = true,
+        current_project = false,
+        other_project = true,
+        definition_smart = true,
+      },
+    },
+
   other_project_definitions = 
     {
       desc = "find definitions in other projects",
@@ -255,14 +267,20 @@ local function telescope_global_symbols(option)
   else
     -- find definitions
     if (option.definition_smart == true) then
-      cmd = "global -c "
-      global_command_current_project(tbl, cmd)
+      if (option.current_project == true) then
+        cmd = "global -c "
+        global_command_current_project(tbl, cmd)
 
-      -- it some other project added, list all symbols of current_project
-      -- because other project is very likely to be library or header files
-      if (#M.extra_paths > 0) then
+        -- list current project's other symbols
         cmd = "global -s -c "
         global_command_current_project(tbl, cmd)
+      else -- other project
+        cmd = "global -c "
+        global_command_other_project(tbl, cmd)
+
+        -- list other project's other symbols
+        cmd = "global -s -c "
+        global_command_other_project(tbl, cmd)
       end
     else
       if (option.current_project == true) then
@@ -327,29 +345,47 @@ local function telescope_global_preview(option, symbol)
   else
     -- find definitions
     if (option.definition_smart == true) then
-      -- 1. try to find definitions in current project
-      cmd = "global --result grep -xd " .. symbol
-      global_command_current_project(tbl, cmd)
-      tbl = format_preview(tbl)
-      if (#tbl > 0) then
-        return tbl
+      if (option.current_project == true) then
+        -- 1. try to find definitions in current project
+        cmd = "global --result grep -xd " .. symbol
+        global_command_current_project(tbl, cmd)
+        tbl = format_preview(tbl)
+        if (#tbl > 0) then
+          return tbl
+        end
+
+        -- 2. try to find definitions in other projects
+        cmd = "global --result grep -axd " .. symbol
+        global_command_other_project(tbl, cmd)
+        tbl = format_preview(tbl)
+        if (#tbl > 0) then
+          return tbl
+        end
+
+        -- 3. try to find references in other projects
+        -- this is because global doesn't treat function declaration as definition
+        cmd = "global --result grep -s -axr " .. symbol
+        global_command_other_project(tbl, cmd)
+        option.definitions_found = "reference_extra_paths"
+
+        return format_preview(tbl)
+      else
+        -- 1. try to find definitions in other projects
+        cmd = "global --result grep -axd " .. symbol
+        global_command_other_project(tbl, cmd)
+        tbl = format_preview(tbl)
+        if (#tbl > 0) then
+          return tbl
+        end
+
+        -- 2. try to find references in other projects
+        -- this is because global doesn't treat function declaration as definition
+        cmd = "global --result grep -s -axr " .. symbol
+        global_command_other_project(tbl, cmd)
+        option.definitions_found = "reference_extra_paths"
+
+        return format_preview(tbl)
       end
-
-      -- 2. try to find definitions in other projects
-      cmd = "global --result grep -axd " .. symbol
-      global_command_other_project(tbl, cmd)
-      tbl = format_preview(tbl)
-      if (#tbl > 0) then
-        return tbl
-      end
-
-      -- 3. try to find references in other projects
-      -- this is because global doesn't treat function declaration as definition
-      cmd = "global --result grep -s -axr " .. symbol
-      global_command_other_project(tbl, cmd)
-      option.definitions_found = "reference_extra_paths"
-
-      return format_preview(tbl)
     else
       if (option.current_project == true) then
         cmd = "global --result grep -axd " .. symbol
@@ -387,24 +423,38 @@ local function telescope_global_on_selection(option, symbol)
   else
     -- find definitions
     if (option.definition_smart == true) then
-      -- 1. find current_project definitions
-      cmd = "global --result grep -xd " .. symbol
-      global_qflist_current_project(qflist, cmd)
-      if (#qflist > 0) then
-        goto done
-      end
+      if (option.current_project == true) then
+        -- 1. find current_project definitions
+        cmd = "global --result grep -xd " .. symbol
+        global_qflist_current_project(qflist, cmd)
+        if (#qflist > 0) then
+          goto done
+        end
 
-      -- 2. try to find definitions in other projects
-      cmd = "global --result grep -axd " .. symbol
-      global_qflist_other_project(qflist, cmd)
-      if (#qflist > 0) then
-        goto done
-      end
+        -- 2. try to find definitions in other projects
+        cmd = "global --result grep -axd " .. symbol
+        global_qflist_other_project(qflist, cmd)
+        if (#qflist > 0) then
+          goto done
+        end
 
-      -- 3. try to find references in other projects
-      -- this is because global doesn't treat function declaration as definition
-      cmd = "global --result grep -s -axr " .. symbol
-      global_qflist_other_project(qflist, cmd)
+        -- 3. try to find references in other projects
+        -- this is because global doesn't treat function declaration as definition
+        cmd = "global --result grep -s -axr " .. symbol
+        global_qflist_other_project(qflist, cmd)
+      else -- other_project == true
+        -- 1. try to find definitions in other projects
+        cmd = "global --result grep -axd " .. symbol
+        global_qflist_other_project(qflist, cmd)
+        if (#qflist > 0) then
+          goto done
+        end
+
+        -- 2. try to find references in other projects
+        -- this is because global doesn't treat function declaration as definition
+        cmd = "global --result grep -s -axr " .. symbol
+        global_qflist_other_project(qflist, cmd)
+      end
     else
       if (option.current_project == true) then
         cmd = "global --result grep -axd " .. symbol
