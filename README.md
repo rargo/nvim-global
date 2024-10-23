@@ -146,7 +146,7 @@ This finds definitions in the follow step until one of them successfully find sy
 - find symbol references in other projects
 
 
-🛠️ ## Keymaping 
+## 🛠️ Keymaping 
 
 Default has no keymappings, you can map commands to some key, below use key "F8" and "Ctrl-F8"
 
