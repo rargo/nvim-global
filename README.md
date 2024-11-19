@@ -145,15 +145,49 @@ This finds definitions in the follow step until one of them successfully find sy
 - find symbol definitions in other projects
 - find symbol references in other projects
 
+### find cursor word definition in current project 
+
+```
+:GlobalFindCursorWordDefinitionCurrentProject
+```
+
+### find cursor word references in current project 
+
+```
+:GlobalFindCursorWordReferenceCurrentProject
+```
+
+### find cursor word definition in all projects
+
+```
+:GlobalFindCursorWordDefinitionAllProject
+```
+
+### find cursor word references in all projects
+
+```
+:GlobalFindCursorWordReferenceAllProject
+```
 
 ## 🛠️ Keymaping 
 
-Default has no keymappings, you can map commands to some key, below use key "F8" and "Ctrl-F8"
+Default has no keymappings, you can map commands to some key.  
+
+map key "F11" and "Ctrl-F11"  
 
 ```
-vim.api.nvim_set_keymap('n', '<F8>', '<cmd>Global current_project_definitions_smart<CR>', {noremap = true, silent = true})
-vim.api.nvim_set_keymap('n', '<C-F8>', '<cmd>Global other_project_definitions_smart<CR>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', '<F11>', '<cmd>Global current_project_definitions_smart<CR>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', '<C-F11>', '<cmd>Global other_project_definitions_smart<CR>', {noremap = true, silent = true})
 -- for some laptop computer C-F8 keymap
-vim.api.nvim_set_keymap('n', '<C-F32>', '<cmd>Global other_project_definitions_smart<CR>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', '<C-F35>', '<cmd>Global other_project_definitions_smart<CR>', {noremap = true, silent = true})
+```
+
+map key "\d", "\D", "\r", "\R"  
+
+```
+vim.api.nvim_set_keymap('n', '\\d', '<cmd>GlobalFindCursorWordDefinitionCurrentProject<CR>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', '\\r', '<cmd>GlobalFindCursorWordReferenceCurrentProject<CR>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', '\\D', '<cmd>GlobalFindCursorWordDefinitionAllProject<CR>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', '\\R', '<cmd>GlobalFindCursorWordReferenceAllProject<CR>', {noremap = true, silent = true})
 ```
 

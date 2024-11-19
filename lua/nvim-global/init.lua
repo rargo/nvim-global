@@ -1,9 +1,11 @@
 local sorters = require "telescope.sorters"
 local state = require "telescope.actions.state"
 local previewers = require "telescope.previewers"
+local conf = require("telescope.config").values
 
 -- TODO
 -- 1. global tags as completion resource
+-- 2. telescope picket is slow, optimize speed
 
 local SymbolNotFoundError = "Error, no symbol found, please check if tag files had been generated"
 
@@ -13,7 +15,11 @@ M.extra_paths = {}
 
 M.default_options = {
   Trouble = false,
+  Notify = false,
+  --Fzf = false,
 }
+
+local t = 0
 
 M.options = {}
 
@@ -109,6 +115,36 @@ local commands_tbl = {
     },
 }
 
+local function notify(message, level, timeout)
+  if (M.options.Notify == true) then
+    local notify = require("notify")
+    local _timeout = 2000
+    if (timeout ~= nil) then
+      _timeout = timeout
+    end
+    if (notify ~= nil) then
+      notify(message, level, {
+        title = "Global",
+        timeout = _timeout,
+        stages = "fade",
+      })
+    else
+      print("notify plugin not found, please install it first");
+    end
+  end
+end
+
+local function cost_time(str)
+  local now = os.time()
+  if (t == 0) then
+    t = os.time()
+    return
+  end
+
+  print(str .. " cost " .. (now-t))
+  t = now
+end
+
 local function run_command(cmd)
   local handle = io.popen(cmd)
   local str = handle:read("*a")
@@ -136,8 +172,11 @@ local function global_command_current_project(tbl, global_cmd)
     return tbl
   end
 
+  --cost_time('b0');
   local str = run_command(global_cmd)
+  --cost_time('b1');
   local temp_tbl = vim.split(str, "\n")
+  --cost_time('b2');
   for _,v in ipairs(temp_tbl) do
     -- filter out dumplicate entrys
     if (tbl[v] == nil) then
@@ -145,6 +184,7 @@ local function global_command_current_project(tbl, global_cmd)
       tbl[v] = true
     end
   end
+  --cost_time('b3');
 
   return tbl
 end
@@ -250,7 +290,9 @@ local function telescope_global_symbols(option)
     -- find references
     if (option.current_project == true) then
       cmd = "global -c "
+      print("a1: " .. os.time())
       global_command_current_project(tbl, cmd)
+      print("a2: " .. os.time())
 
       cmd = "global -s -c "
       global_command_current_project(tbl, cmd)
@@ -485,6 +527,14 @@ local function telescope_global_on_selection(option, symbol)
   return #qflist
 end
 
+local function get_sorter()
+  -- if (M.options.Fzf == true) then
+      return conf.generic_sorter()
+  -- else
+  --     return sorters.get_generic_fuzzy_sorter()
+  -- end
+end
+
 local function telescope_global_picker(option)
   if (check_executable() == false) then
     return
@@ -513,7 +563,7 @@ local function telescope_global_picker(option)
       finder = finders.new_table {
         results = telescope_global_symbols(option)
       },
-      sorter = sorters.get_generic_fuzzy_sorter(),
+      sorter = get_sorter(),
       attach_mappings = function(prompt_bufnr, _)
         actions.select_default:replace(function()
           actions.close(prompt_bufnr)
@@ -537,7 +587,7 @@ local function update_dir_gtags(dir)
   print("Done")
 end
 
-M.update_gtags = function()
+local function update_gtags()
   if (check_executable() == false) then
     return
   end
@@ -556,7 +606,8 @@ M.update_gtags = function()
   end
 end
 
-M.show_projects = function()
+local function show_projects()
+  local mesg = ""
   if (check_executable() == false) then
     return
   end
@@ -566,19 +617,27 @@ M.show_projects = function()
   print("Current project:")
   print("   " .. current_root)
   --print("   dbpath: " .. dbpath)
+  mesg = mesg .. "Current project:\n"
+  mesg = mesg .. "   " .. current_root
 
   if (#M.extra_paths > 0) then
     print("\n")
     print("Other projects:")
-    for _, path in ipairs(M.extra_paths) do
+    mesg = mesg .. "\n"
+    mesg = mesg .. "Other projects:"
+    for i, path in ipairs(M.extra_paths) do
       local root = run_command("global --print root -C " .. path)
       local dbpath = run_command("global --print dbpath -C " .. path)
       if (root ~= current_root) then
-        print("   " .. path)
+        print("   " .. i .. ": " .. path)
+        mesg = mesg .. "\n"
+        mesg = mesg .. "   " .. i .. ": " .. path
         --print("selection is: " .. selection[1])
       end
     end
   end
+
+  notify(mesg, "info", 5000)
 end
 
 M.find_definitions = function(word)
@@ -591,6 +650,30 @@ M.find_references = function(word)
   return telescope_global_on_selection(opt, word)
 end
 
+local function find_cursor_word_definition_current_project()
+  local cword = vim.fn.expand("<cword>")
+  local opt = commands_tbl.current_project_definitions_smart.opt
+  return telescope_global_on_selection(opt, cword)
+end
+
+local function find_cursor_word_reference_current_project()
+  local cword = vim.fn.expand("<cword>")
+  local opt = commands_tbl.current_project_references.opt
+  return telescope_global_on_selection(opt, cword)
+end
+
+local function find_cursor_word_definition_all_project()
+  local cword = vim.fn.expand("<cword>")
+  local opt = commands_tbl.all_project_definitions.opt
+  return telescope_global_on_selection(opt, cword)
+end
+
+local function find_cursor_word_reference_all_project()
+  local cword = vim.fn.expand("<cword>")
+  local opt = commands_tbl.all_project_references.opt
+  return telescope_global_on_selection(opt, cword)
+end
+
 local function add_other_project_path(path)
   for _,v in ipairs(M.extra_paths) do
     if (v == path) then
@@ -601,9 +684,10 @@ local function add_other_project_path(path)
 
   table.insert(M.extra_paths, path)
   print("nvim-global: project \"" .. path .. "\" added")
+  notify("Project " .. path .. " added ", "info")
 end
 
-M.add_other_project = function(path)
+local function add_other_project(path)
   if (check_executable() == false) then
     return
   end
@@ -642,7 +726,39 @@ M.add_other_project = function(path)
   end
 end
 
-M.add_kernel_header = function()
+local function remove_other_project(project_n)
+  if (#M.extra_paths == 0) then
+    print("No other project has beed added")
+    return
+  end
+
+  if (project_n ~= "") then
+    if (project_n == "all") then
+      M.extra_paths = {}
+      print("All other projects removed")
+      return
+    end
+
+    print(project_n)
+    local n = tonumber(project_n)
+    print(n)
+    if (n == 0) then
+      print("Cannot remove current project")
+      return
+    end
+
+    if (n > #M.extra_paths) then
+      print("Project number error, max is " .. #M.extra_paths)
+      return
+    end
+
+    print("Remove project " .. n .. " (" .. M.extra_paths[n] .. ")")
+    notify("Project " .. M.extra_paths[n] .. " removed", "info")
+    table.remove(M.extra_paths, n)
+  end
+end
+
+local function add_kernel_header()
   local handle = io.popen("uname -r")
   local kernel_version = handle:read("*a")
   local kernel_header_path = "/usr/src/linux-headers-" .. kernel_version
@@ -650,7 +766,7 @@ M.add_kernel_header = function()
   kernel_header_path = string.gsub(kernel_header_path, "\n","")
   handle:close()
 
-  M.add_other_project(kernel_header_path)
+  add_other_project(kernel_header_path)
 end
 
 local function telescope_commands_preview(key)
@@ -726,7 +842,7 @@ local function telescope_commands_picker(input)
       finder = finders.new_table {
         results = telescope_commands_select()
       },
-      sorter = sorters.get_generic_fuzzy_sorter(),
+      sorter = get_sorter(),
       attach_mappings = function(prompt_bufnr, _)
         actions.select_default:replace(function()
           actions.close(prompt_bufnr)
@@ -744,15 +860,19 @@ M.setup = function(options)
   M.options = vim.tbl_deep_extend("force", M.default_options, options or {})
 
   vim.api.nvim_create_user_command("GlobalAddProject", function(opt)
-    M.add_other_project(opt.args)
+    add_other_project(opt.args)
   end, { nargs = 1, desc = "Add other project tag file", complete = "dir" })
 
+  vim.api.nvim_create_user_command("GlobalRemoveProject", function(opt)
+    remove_other_project(opt.args)
+  end, { nargs = 1, desc = "Remove other project tag file"})
+
   vim.api.nvim_create_user_command("GlobalAddKernelHeaders", function(opt)
-    M.add_kernel_header(opt.args)
+    add_kernel_header(opt.args)
   end, { nargs = 0, desc = "Add kernel header files in /usr/src/linux-headers-`uname -r`"})
 
   vim.api.nvim_create_user_command("GlobalUpdateTags", function(opt)
-    M.update_gtags()
+    update_gtags()
   end, { nargs = 0, desc = "Update tags, if tags not exist, will generate tags" })
 
   vim.api.nvim_create_user_command("Global", function(input)
@@ -760,9 +880,24 @@ M.setup = function(options)
   end, { nargs = '?', desc = "Global" })
 
   vim.api.nvim_create_user_command("GlobalShowProjects", function(opt)
-    M.show_projects(opt.args)
+    show_projects(opt.args)
   end, { nargs = 0, desc = "Show tag info" })
 
+  vim.api.nvim_create_user_command("GlobalFindCursorWordDefinitionCurrentProject", function(opt)
+    find_cursor_word_definition_current_project(opt.args)
+  end, { nargs = 0, desc = "find cursor word definition in current project"})
+
+  vim.api.nvim_create_user_command("GlobalFindCursorWordReferenceCurrentProject", function(opt)
+    find_cursor_word_reference_current_project(opt.args)
+  end, { nargs = 0, desc = "find cursor word reference in current project"})
+
+  vim.api.nvim_create_user_command("GlobalFindCursorWordDefinitionAllProject", function(opt)
+    find_cursor_word_definition_all_project(opt.args)
+  end, { nargs = 0, desc = "find cursor word definition in all project"})
+
+  vim.api.nvim_create_user_command("GlobalFindCursorWordReferenceAllProject", function(opt)
+    find_cursor_word_reference_all_project(opt.args)
+  end, { nargs = 0, desc = "find cursor word reference in all project"})
 end
 
 return M
