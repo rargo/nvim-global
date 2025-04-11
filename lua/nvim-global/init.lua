@@ -674,6 +674,7 @@ local function find_cursor_word_reference_all_project()
   return telescope_global_on_selection(opt, cword)
 end
 
+
 local function add_other_project_path(path)
   for _,v in ipairs(M.extra_paths) do
     if (v == path) then
@@ -769,6 +770,10 @@ local function add_kernel_header()
   add_other_project(kernel_header_path)
 end
 
+local function add_libc_header()
+  add_other_project("/usr/include/")
+end
+
 local function telescope_commands_preview(key)
   local tbl = {}
   for k, v in pairs(commands_tbl) do
@@ -856,6 +861,11 @@ local function telescope_commands_picker(input)
     :find()
 end
 
+M.find_tags = function(word)
+  local opt = commands_tbl.all_project_definitions.opt
+  return telescope_global_on_selection(opt, word)
+end
+
 M.setup = function(options)
   M.options = vim.tbl_deep_extend("force", M.default_options, options or {})
 
@@ -871,9 +881,13 @@ M.setup = function(options)
     add_kernel_header(opt.args)
   end, { nargs = 0, desc = "Add kernel header files in /usr/src/linux-headers-`uname -r`"})
 
+  vim.api.nvim_create_user_command("GlobalAddLibcHeader", function(opt)
+    add_libc_header(opt.args)
+  end, { nargs = 0, desc = "Add kernel header files in /usr/src/linux-headers-`uname -r`"})
+
   vim.api.nvim_create_user_command("GlobalUpdateTags", function(opt)
     update_gtags()
-  end, { nargs = 0, desc = "Update tags, if tags not exist, will generate tags" })
+  end, { nargs = 0, desc = "update or generate tag files for current project" })
 
   vim.api.nvim_create_user_command("Global", function(input)
     telescope_commands_picker(input)
@@ -881,7 +895,7 @@ M.setup = function(options)
 
   vim.api.nvim_create_user_command("GlobalShowProjects", function(opt)
     show_projects(opt.args)
-  end, { nargs = 0, desc = "Show tag info" })
+  end, { nargs = 0, desc = "Show projects info" })
 
   vim.api.nvim_create_user_command("GlobalFindCursorWordDefinitionCurrentProject", function(opt)
     find_cursor_word_definition_current_project(opt.args)
@@ -898,6 +912,10 @@ M.setup = function(options)
   vim.api.nvim_create_user_command("GlobalFindCursorWordReferenceAllProject", function(opt)
     find_cursor_word_reference_all_project(opt.args)
   end, { nargs = 0, desc = "find cursor word reference in all project"})
+
+  vim.api.nvim_create_user_command("GlobalTag", function(opt) 
+    find_tags(opt.args)
+  end, { nargs = 1, desc = "Global find tags"})
 end
 
 return M

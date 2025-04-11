@@ -13,6 +13,7 @@ Neovim has stopped supporting cscope. Despite there are treesitter and LSP, glob
 - GNU global software package installed
 - Neovim has [Neovim telescope plugin](https://github.com/nvim-telescope/telescope.nvim) installed
 - Install [Trouble](https://github.com/folke/trouble.nvim) if you want to use it as quickfix window
+- Recommand install [telescope fzf](https://github.com/nvim-telescope/telescope-fzf-native.nvim) plugin for neovim, it will speed up select symbol a lot
 
 ## 📦 Installation
 
@@ -60,6 +61,23 @@ Use it to add other projects like header files, library source.
 it's useful for find symbols that defined in other projects.
 
 If tag files not exist for that project, you will be prompt if want to generate it in that \<project directory\> 
+
+### show project
+
+```
+:GlobalShowProjects
+```
+
+Use it to show projects information, project number will be shown
+
+### remove project
+
+```
+:GlobalRemoveProject <project number>
+```
+
+Use it remove project that had been added by 'GlobalAddProject', use "GlobalRemoveProject all" to remove all projects,  
+Note current project cannot be removed
 
 ### Add kernel headers
 
@@ -169,6 +187,14 @@ This finds definitions in the follow step until one of them successfully find sy
 :GlobalFindCursorWordReferenceAllProject
 ```
 
+### Find tags
+
+```
+GlobalTag <symbol>
+```
+
+It will find definitions in all project, works like 'Global all_project_definitions'
+
 ## 🛠️ Keymaping 
 
 Default has no keymappings, you can map commands to some key.  
@@ -176,18 +202,25 @@ Default has no keymappings, you can map commands to some key.
 map key "F11" and "Ctrl-F11"  
 
 ```
+-- map F11 to find definitions in current project smartly
 vim.api.nvim_set_keymap('n', '<F11>', '<cmd>Global current_project_definitions_smart<CR>', {noremap = true, silent = true})
+-- map C-F11 to find definitions in other project smartly
 vim.api.nvim_set_keymap('n', '<C-F11>', '<cmd>Global other_project_definitions_smart<CR>', {noremap = true, silent = true})
--- for some laptop computer C-F8 keymap
-vim.api.nvim_set_keymap('n', '<C-F35>', '<cmd>Global other_project_definitions_smart<CR>', {noremap = true, silent = true})
+-- map C-F11 to find definitions in other project smartly
+-- for some laptop computer C-F11 keymap
+vim.api.nvim_set_keymap('n', '<F35>', '<cmd>Global other_project_definitions_smart<CR>', {noremap = true, silent = true})
 ```
 
-map key "\d", "\D", "\r", "\R"  
+map key "\d", "\D", "\s", "\S"  
 
 ```
+--map \d to find definitions in current project
 vim.api.nvim_set_keymap('n', '\\d', '<cmd>GlobalFindCursorWordDefinitionCurrentProject<CR>', {noremap = true, silent = true})
-vim.api.nvim_set_keymap('n', '\\r', '<cmd>GlobalFindCursorWordReferenceCurrentProject<CR>', {noremap = true, silent = true})
+--map \s to find references in current project
+vim.api.nvim_set_keymap('n', '\\s', '<cmd>GlobalFindCursorWordReferenceCurrentProject<CR>', {noremap = true, silent = true})
+--map \D to find definitions in all projects
 vim.api.nvim_set_keymap('n', '\\D', '<cmd>GlobalFindCursorWordDefinitionAllProject<CR>', {noremap = true, silent = true})
-vim.api.nvim_set_keymap('n', '\\R', '<cmd>GlobalFindCursorWordReferenceAllProject<CR>', {noremap = true, silent = true})
+--map \S to find references in all projects
+vim.api.nvim_set_keymap('n', '\\S', '<cmd>GlobalFindCursorWordReferenceAllProject<CR>', {noremap = true, silent = true})
 ```
 
